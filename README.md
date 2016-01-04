@@ -19,7 +19,7 @@ processing onto service classes.
 
 ### Generate Handler Files
 
-If you opt for the handler files, there's a tool to generate these files based on operations in
+If you opt for the handler files, there's a bundled tool to generate these files based on operations in
 your Swagger spec and a [Mustache](https://mustache.github.io) template file.
 
 ```javascript
@@ -30,13 +30,13 @@ genHandlers(
 	'./handlers',   // director path to write handler files
 	options         // options (optional)
 )
+```
 
 #### Available Options
 
 - `templateFile`: Path to the Mustache template for your handler. Defaults to [this](https://github.com/mikestead/swagger-routes/blob/master/template/handler.mustache),
 - `template`: Loaded Mustache template to use instead of `templateFile`. Defaults to `undefined`.
 - `getTemplateView`: Function which takes an operation and returns the data to feed to the template. Defaults to return the operation.
-```
 
 If you re-run `genHandlers` over existing handlers the originals will remain in place, i.e. this
 operation is non-destructive.
@@ -55,15 +55,14 @@ import { addRoutes } from 'swagger-routes'
 addRoutes(app, {        // express app or restify server
 	api: './api.yml'    // path to your Swagger spec, or the loaded spec reference
 })
-
+```
 #### Other Options
 
 - `docsPath`: path to serve your swagger api json. Defaults to `/api-docs`.
 - `handlers`: directory where your handler files reside. Defaults to `./handlers`.
 - `security`: directory where your authorizer files reside. Defaults to `./security`.
-- `createHandler`: Function to create handlers. If specified, overrides handler file lookup.
-- `createAuthorizer`: Factory to create authorizers. If specified, overrides security authorizer file lookup.
-```
+- `createHandler`: Function to create handlers. If specified, overrides `handlers` file lookup.
+- `createAuthorizer`: Factory to create authorizers. If specified, overrides `security` authorizer file lookup.
 
 ### Operation Object
 
