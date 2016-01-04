@@ -1,0 +1,5 @@
+.idea
+yaml-fragment.iml
+node_modules
+npm-debug.log
+bin

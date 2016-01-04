@@ -1,0 +1,39 @@
+swagger: "2.0"
+info:
+  version: 1.0.0
+  title: Swagger File Upload
+  license:
+    name: MIT
+host: localhost
+basePath: /
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /upload:
+    post:
+      summary: Upload a file
+      operationId: uploadImage
+      consumes:
+        - multipart/form-data
+      tags:
+        - images
+      parameters:
+        - name: fileA
+          in: formData
+          type: file
+          required: true
+        - name: fileB
+          in: formData
+          type: file
+          required: true
+        - name: message
+          in: formData
+          type: string
+          required: true
+      responses:
+        204:
+          description: OK

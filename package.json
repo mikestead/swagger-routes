@@ -1,0 +1,56 @@
+{
+  "name": "swagger-routes",
+  "version": "1.0.0",
+  "description": "Generate and register route handlers from a Swagger specification",
+  "main": "src/index",
+  "keywords": [
+    "swagger",
+    "swagger 2.0",
+    "express",
+    "restify",
+    "rest",
+    "middleware",
+    "api"
+  ],
+  "author": {
+    "name": "Mike Stead",
+    "url": "https://github.com/mikestead"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/mikestead/swagger-routes",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mikestead/swagger-routes.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mikestead/swagger-routes/issues"
+  },
+  "engines": {
+    "node": ">=4.0.0",
+    "npm": ">=2.14.2"
+  },
+  "scripts": {
+    "lint": "eslint src test",
+    "test": "mocha --recursive"
+  },
+  "dependencies": {
+    "js-yaml": "^3.4.6",
+    "jsonschema": "1.0.2",
+    "mkdirp": "^0.5.1",
+    "mustache": "^2.2.1"
+  },
+  "devDependencies": {
+    "del": "^2.2.0",
+    "babel-eslint": "^4.1.6",
+    "concat-stream": "^1.5.1",
+    "eslint": "^1.10.3",
+    "eslint-config-rackt": "^1.1.1",
+    "expect": "^1.13.0",
+    "express": "^4.13.3",
+    "form-data": "^0.2.0",
+    "mocha": "^2.3.4",
+    "multer": "^1.1.0",
+    "on-finished": "^2.3.0",
+    "restify": "^4.0.3"
+  }
+}
