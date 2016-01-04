@@ -10,6 +10,7 @@ const COLLECTION_FORMAT = {
 
 exports.COLLECTION_FORMAT = COLLECTION_FORMAT
 exports.formatGroupData = formatGroupData
+exports.getPathParams = getPathParams
 exports.getFormData = getFormData
 
 function formatGroupData(groupSchema, groupData) {
@@ -39,6 +40,27 @@ function stringValueToArray(value, format) {
 
 function applyDefaultValue(paramSchema, value) {
 	return (value === undefined && !paramSchema.required) ? paramSchema.default : value
+}
+
+function getPathParams(req, operation) {
+	const params = req.params || {}
+	if (req.app) return params // express
+
+	// restify
+	// req.params may contain a mix of more than just path parameters
+	// as restify has the option to merge body and query params in here too.
+	// This forces us to pull out just the ones defined in the swagger spec.
+	// Note that this means we can't later determine if the client has sent
+	// extra/invalid path parameters so validation around this will not run.
+
+	return operation.parameters
+		.filter(op => op.in === 'path')
+		.reduce((pathParams, op) => {
+			if (params[op.name] !== undefined) {
+				pathParams[op.name] = params[op.name]
+			}
+			return pathParams
+		}, {})
 }
 
 function getFormData(req) {

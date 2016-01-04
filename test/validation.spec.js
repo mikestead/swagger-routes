@@ -84,9 +84,10 @@ describe('validation', () => {
 			expect(failure.errors[0].message).toBe('query.INT is not of a type(s) integer')
 		})
 
-		it('should enforce that path param is a valid path segment id', () => {
+		it('should enforce that path param is a valid path segment id under express', () => {
 			const spec = newSpec(PARAM.STRING)
 			const req = newReq({ params: { 'wrong': 'value' } })
+			req.app = true // simulate express request
 			const failure = v.validateRequest(req, spec)
 
 			expect(failure).toExist()
