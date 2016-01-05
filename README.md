@@ -5,38 +5,54 @@
 A tool to generate and register [Restify](http://restify.com) or [Express](http://expressjs.com) routes from a 
 [Swagger](http://swagger.io) ([OpenAPI](https://openapis.org)) specification.
 
+### Usage
 
-## Operation Handlers
+```javascript
+import { addRoutes } from 'swagger-routes'
+
+addRoutes(app, {        // express app or restify server
+    api: './api.yml'    // path to your Swagger spec, or the loaded spec reference
+})
+```
+##### Options
+
+- `api`: path to your Swagger spec, or the loaded spec reference.
+- `docsPath`: url path to serve your swagger api json. Defaults to `/api-docs`.
+- `handlers`: directory where your handler files reside. Defaults to `./handlers`.
+- `security`: directory where your authorizer files reside. Defaults to `./security`.
+- `createHandler`: Function to create handlers. If specified, overrides `handlers` file lookup.
+- `createAuthorizer`: Function to create authorizers. If specified, overrides `security` authorizer file lookup.
+
+### Operation Handlers
 
 You have the option to define and maintain a handler file for each Swagger operation, or alternatively
-provide a factory function which returns a handler given an operation.
+provide a factory function which creates a handler function given an operation.
+
+#### Handler Files
 
 Using individual handler files is a good choice if each handler needs unique logic 
 to deal with its incoming request.
 
-The factory is a better option if all handlers are quite similar e.g. delegate their request
-processing onto service classes.
+##### Generating Handler Files
 
-### Generate Handler Files
-
-If you opt for the handler files, there's a bundled tool to generate these files based on operations in
+If you opt for handler files, there's a bundled tool to generate these files based on operations in
 your Swagger spec and a [Mustache](https://mustache.github.io) template file.
 
 ```javascript
 import { genHandlers } from 'swagger-routes'
 
 genHandlers(
-	'./api.yml',    // path to your Swagger spec, or the loaded spec reference
-	'./handlers',   // director path to write handler files
-	options         // options (optional)
+    './api.yml',    // path to your Swagger spec, or the loaded spec reference
+    './handlers',   // directory to write operation your handler files
+    options
 )
 ```
 
-#### Available Options
+###### Options
 
-- `templateFile`: Path to the Mustache template for your handler. Defaults to [this](https://github.com/mikestead/swagger-routes/blob/master/template/handler.mustache),
-- `template`: Loaded Mustache template to use instead of `templateFile`. Defaults to `undefined`.
-- `getTemplateView`: Function which takes an operation and returns the data to feed to the template. Defaults to return the operation.
+- `templateFile`: path to the Mustache template for your handler. Defaults to point at  [this](https://github.com/mikestead/swagger-routes/blob/master/template/handler.mustache),
+- `template`: loaded Mustache template to use instead of `templateFile`. Defaults to `undefined`.
+- `getTemplateView`: function which takes an operation and returns the data to feed to the template. Defaults to return the operation.
 
 If you re-run `genHandlers` over existing handlers the originals will remain in place, i.e. this
 operation is non-destructive.
@@ -47,22 +63,13 @@ and remove them if you wish.
 
 If later you enabled a handler again in your spec and re-run, then the underscore will be removed.
 
-## Register Handlers
 
-```javascript
-import { addRoutes } from 'swagger-routes'
+#### Handler Factory
 
-addRoutes(app, {        // express app or restify server
-	api: './api.yml'    // path to your Swagger spec, or the loaded spec reference
-})
-```
-#### Other Options
+The factory is a better option if all handlers are quite similar e.g. delegate their request
+processing onto service classes.
 
-- `docsPath`: path to serve your swagger api json. Defaults to `/api-docs`.
-- `handlers`: directory where your handler files reside. Defaults to `./handlers`.
-- `security`: directory where your authorizer files reside. Defaults to `./security`.
-- `createHandler`: Function to create handlers. If specified, overrides `handlers` file lookup.
-- `createAuthorizer`: Factory to create authorizers. If specified, overrides `security` authorizer file lookup.
+
 
 ### Operation Object
 
