@@ -94,13 +94,12 @@ export const middleware = [
 
 #### Handler Factory
 
-The factory is a better option if all handlers are quite similar e.g. delegate their request
+The factory function is a better option to a file if handlers are quite similar e.g. delegate their request
 processing onto service classes.
 
 ##### Create Handler Function
 
-You can define a `createHandler` function when registering your routes. It takes a 
-Swagger operation and returns the request handler responsible for dealing with it.
+You can define a `createHandler` function when registering your routes. It takes a Swagger operation and returns the request handler responsible for dealing with it.
 
 If a handler function is returned then it will take precedence over a handler file for the same operation.
 
