@@ -33,10 +33,37 @@ provide a factory function which creates a handler function given an operation.
 Using individual handler files is a good choice if each handler needs unique logic 
 to deal with its incoming request.
 
+##### File Contents
+
+A handler file must export a function called `handler` to deal with incoming operation requests.
+
+```javascript
+export function handler(req, res) {
+   
+}
+```
+You also have the option to export a `middleware` function to be executed before the handler.
+
+```javascript
+export const middleware = preprocess
+
+function preprocess(req, res, next) {
+    next()
+}
+```
+Middleware can be an ordered list.
+
+```javascript
+export const middleware = [
+    (req, res, next) => next(), // 1
+    (req, res, next) => next()  // 2
+]
+```
+
 ##### Generating Handler Files
 
-If you opt for handler files, there's a bundled tool to generate these files based on operations in
-your Swagger spec and a [Mustache](https://mustache.github.io) template.
+To save you a bunch of boilerplate there's a bundled tool to generate handler files based on operations in
+your Swagger spec using a [Mustache](https://mustache.github.io) template.
 
 ```javascript
 import { genHandlers } from 'swagger-routes'
@@ -62,35 +89,6 @@ When a re-run finds handlers no longer in use they will be renamed with an `_` p
 and remove them if you wish.
 
 If later you enabled a handler again in your spec and re-run, then the underscore will be removed.
-
-##### File Contents
-
-At the very least a handler file must export a function called `handler` to deal with incoming operation requests.
-
-```javascript
-export function handler(req, res) {
-   
-}
-```
-
-You have the option to export a `middleware` function to be executed before the handler.
-
-```javascript
-export const middleware = preprocess
-
-function preprocess(req, res, next) {
-    next()
-}
-```
-
-Middleware can be an ordered list.
-
-```javascript
-export const middleware = [
-    (req, res, next) => next(), // 1
-    (req, res, next) => next()  // 2
-]
-```
 
 #### Handler Factory
 
