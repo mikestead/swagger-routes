@@ -30,12 +30,15 @@ provide a factory function which creates a handler function given an operation.
 
 #### Handler Files
 
-Using individual handler files is a good choice if each handler needs unique logic 
-to deal with its incoming request.
+Using individual handler files is a good choice if each handler needs quite unique logic 
+to deal with an operation request.
+
+A handler file must be named after the Swagger operation it handles e.g. `listPets.js`, and all 
+handler files must reside in the same directory.
 
 ##### File Contents
 
-A handler file must export a function called `handler` to deal with incoming operation requests.
+A function called `handler` should be exported to deal with an incoming operation request.
 
 ```javascript
 export function handler(req, res) {
@@ -142,6 +145,12 @@ function createHandler(operation) {
     }
 }
 ```
+#### Route Stack Execution Order
+
+1. authorizer middleware: If there are security restrictions on a route then an authorizer will need to verify the request first.
+2. custom middleware: If the route defines one or more middleware these will be executed in order next.
+3. validation middleware: The incoming request will now be validated against the Swagger spec for the given operation.
+4. handler: Assuming all previous steps pass, the handler is now executed.
 
 ### Operation Object
 
