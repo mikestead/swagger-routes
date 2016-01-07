@@ -151,6 +151,50 @@ function createHandler(operation) {
 2. custom middleware: If the route defines one or more middleware these will be executed in order next.
 3. validation middleware: The incoming request will now be validated against the Swagger spec for the given operation.
 4. handler: Assuming all previous steps pass, the handler is now executed.
+5. 
+
+### OAuth2 Security
+
+When your Swagger api specifies one or more OAuth2 [security schemes](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#implicit-oauth2-sample) then routes which opt into one or more of these schemes can be pretected by an authorizer function.
+
+Just like handlers, you can define an authorizer in a file or via a factory.
+
+#### File Authorizer
+
+The file should be named after the security scheme and reside in the directory path defined by the `security` option. It should export a single middleware function to authorize a request.
+
+```javascript
+export default function petstore_auth(req, res, next) {
+	const token = decodeJsonToken(req.headers.authorization);
+	if (hasRequiredScopes(token, req.requiredScopes)) {
+		next();
+	} else {
+		next(new restify.ForbiddenError());
+	}
+}
+```
+
+#### Authorizer Factory
+
+```javascript
+import { addRoutes } from 'swagger-routes'
+
+addRoutes(app, {
+    api: './api.yml',
+    createAuthorizer
+})
+
+function createAuthorizer(schemeId, securityScheme) {
+    return function authorizer(req, res, next) {
+    	const token = decodeJsonToken(req.headers.authorization);
+    	if (hasRequiredScopes(token, req.requiredScopes)) {
+    		next();
+    	} else {
+    		next(new restify.ForbiddenError());
+    	}
+    }
+}
+```
 
 ### Operation Object
 
