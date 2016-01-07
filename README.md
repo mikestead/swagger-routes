@@ -151,7 +151,6 @@ function createHandler(operation) {
 2. custom middleware: If the route defines one or more middleware these will be executed in order next.
 3. validation middleware: The incoming request will now be validated against the Swagger spec for the given operation.
 4. handler: Assuming all previous steps pass, the handler is now executed.
-5. 
 
 ### OAuth2 Security
 
