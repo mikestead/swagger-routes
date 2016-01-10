@@ -2,11 +2,14 @@
 
 const fs = require('fs')
 const mkdirp = require('mkdirp')
+const dirname = require('path').dirname
 
 exports.exists = exists
+exports.existsSync = existsSync
 exports.mkdir = mkdir
 exports.readFile = readFile
 exports.writeFile = writeFile
+exports.writeFileSync = writeFileSync
 exports.renameFile = renameFile
 exports.readDir = readDir
 
@@ -14,6 +17,14 @@ function exists(path) {
 	return new Promise((res, rej) =>
 		fs.lstat(path, (err, stats) =>
 			err ? rej(err) : res(stats)))
+}
+
+function existsSync(path) {
+	try {
+		return fs.lstatSync(path)
+	} catch (e) {
+		return false
+	}
 }
 
 function mkdir(path) {
@@ -30,8 +41,14 @@ function readFile(path) {
 
 function writeFile(path, contents) {
 	return new Promise((res, rej) =>
-		fs.writeFile(path, contents, err =>
-			err ? rej(err) : res()))
+		mkdir(dirname(path)).then(() =>
+			fs.writeFile(path, contents, err =>
+				err ? rej(err) : res())))
+}
+
+function writeFileSync(path, contents) {
+	mkdirp.sync(dirname(path))
+	fs.writeFileSync(path, contents)
 }
 
 function renameFile(oldPath, newPath) {

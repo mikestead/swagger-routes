@@ -2,15 +2,15 @@
 
 [![Build Status](https://travis-ci.org/mikestead/swagger-routes.svg?branch=master)](https://travis-ci.org/mikestead/swagger-routes) [![npm version](https://img.shields.io/npm/v/swagger-routes.svg?style=flat-square)](https://www.npmjs.com/package/swagger-routes)
 
-A tool to generate and register [Restify](http://restify.com) or [Express](http://expressjs.com) routes from a 
+A tool to generate and register [Restify](http://restify.com) or [Express](http://expressjs.com) route handlers from a 
 [Swagger](http://swagger.io) ([OpenAPI](https://openapis.org)) specification.
 
 ### Usage
 
 ```javascript
-import { addRoutes } from 'swagger-routes'
+import { addHandlers } from 'swagger-routes'
 
-addRoutes(app, {        // express app or restify server
+addHandlers(app, {      // express app or restify server
     api: './api.yml'    // path to your Swagger spec, or the loaded spec reference
 })
 ```

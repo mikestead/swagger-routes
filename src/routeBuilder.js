@@ -1,6 +1,7 @@
 'use strict'
 
 const path = require('path')
+const fileHandlers = require('./fileHandlers')
 const security = require('./routeSecurity')
 const validation = require('./routeValidation')
 
@@ -25,15 +26,16 @@ function buildHandlerStack(operation, authorizers, options) {
 }
 
 function getHandler(operation, options) {
-	var handler
+	let handler
 	if (typeof options.createHandler === 'function') handler = options.createHandler(operation)
-	if (!handler) handler = requireHandler(operation, options)
+	if (handler) fileHandlers.disableHandler(operation, options)
+	else handler = requireHandler(operation, options)
 	return handler
 }
 
 function requireHandler(operation, options) {
-	const handlerPath = path.resolve(options.handlers, operation.id)
-	try { return require(handlerPath) }
+	const fileInfo = fileHandlers.enableHandler(operation, options)
+	try { return require(fileInfo.path) }
 	catch(e) { return null }
 }
 

@@ -15,8 +15,7 @@ function registerRoutes(app, operations, options) {
 function registerOperationRoutes(app, operations, options) {
 	const authorizers = security.getAuthorizers(options.api.securityDefinitions, options)
 	operations.forEach(operation => {
-		let opPath = operation.path.replace(/{([^}]+)}/g, ':$1')
-		opPath = path.normalize(`/${options.api.basePath}/${opPath}`)
+		const opPath = operation.fullPath.replace(/{([^}]+)}/g, ':$1')
 		const stack = routeBuilder.buildHandlerStack(operation, authorizers, options)
 		if (stack.length) getMethod(app, operation).apply(app, [ opPath ].concat(stack))
 		else throw new Error(`Missing operation handler for '${operation.id}'`)

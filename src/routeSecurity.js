@@ -1,6 +1,7 @@
 'use strict'
 
 const path = require('path')
+const fileAuthorizers = require('./fileAuthorizers')
 
 exports.getAuthorizers = getAuthorizers
 exports.createAuthCheck = createAuthCheck
@@ -16,17 +17,17 @@ function getDefinitionIds(security) {
 		.filter(id => !id.startsWith('x-'))
 }
 
-function getAuthorizer(id, definition, options) {
+function getAuthorizer(id, securityScheme, options) {
 	let authorizer
-	if (typeof options.createAuthorizer === 'function') authorizer = options.createAuthorizer(id, definition)
-	if (!authorizer) authorizer = requireAuthorizer(id, options)
+	if (typeof options.createAuthorizer === 'function') authorizer = options.createAuthorizer(id, securityScheme)
+	if (authorizer) fileAuthorizers.disableAuthorizer(id, options)
+	else authorizer = requireAuthorizer(id, securityScheme, options)
 	return authorizer
 }
 
-function requireAuthorizer(id, options) {
-	const filename = id.replace(/[^\w$]/g, '_')
-	const authorizerPath = path.resolve(options.security, filename)
-	try { return require(authorizerPath) }
+function requireAuthorizer(id, securityScheme, options) {
+	const fileInfo = fileAuthorizers.enableAuthorizer(id, securityScheme, options)
+	try { return require(fileInfo.path) }
 	catch(e) { return null }
 }
 

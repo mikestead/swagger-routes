@@ -29,6 +29,7 @@ const PARAM_GROUPS =
 		.map(k => PARAM_GROUP[k])
 
 exports.PARAM_GROUP = PARAM_GROUP
+exports.PARAM_GROUPS = PARAM_GROUPS
 exports.getSpec = getSpec
 exports.getSpecSync = getSpecSync
 exports.getAllOperations = getAllOperations
@@ -96,6 +97,7 @@ function createPathOperation(method, pathInfo, spec) {
 	const operation = Object.assign({
 		id: operationInfo.operationId,
 		path: pathInfo.path,
+		fullPath: path.normalize(`/${spec.basePath}/${pathInfo.path}`),
 		consumes: getOperationProperty('consumes', operationInfo, spec),
 		produces: getOperationProperty('produces', operationInfo, spec),
 		paramGroupSchemas: createParamGroupSchemas(operationInfo.parameters, spec),
