@@ -19,7 +19,7 @@ function getDefinitionIds(security) {
 
 function getAuthorizer(id, securityScheme, options) {
 	let authorizer
-	if (typeof options.createAuthorizer === 'function') authorizer = options.createAuthorizer(id, securityScheme)
+	if (typeof options.authorizers.create === 'function') authorizer = options.authorizers.create(id, securityScheme)
 	if (authorizer) fileAuthorizers.disableAuthorizer(id, options)
 	else authorizer = requireAuthorizer(id, securityScheme, options)
 	return authorizer

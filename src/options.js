@@ -47,10 +47,10 @@ function applyDefaultOptions(options, extra) {
 	return options
 }
 
-function expandFlattenedOption(options, id) {
-	let flattened = options[id]
+function expandFlattenedOption(type, options) {
+	const flattened = options[type]
 	if (typeof flattened === 'string') return { path: flattened }
-	else if (typeof flattened === 'function') return { factory: flattened }
+	else if (typeof flattened === 'function') return { create: flattened }
 	else return flattened
 }
 

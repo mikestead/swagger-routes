@@ -27,7 +27,7 @@ function buildHandlerStack(operation, authorizers, options) {
 
 function getHandler(operation, options) {
 	let handler
-	if (typeof options.createHandler === 'function') handler = options.createHandler(operation)
+	if (typeof options.handlers.create === 'function') handler = options.handlers.create(operation)
 	if (handler) fileHandlers.disableHandler(operation, options)
 	else handler = requireHandler(operation, options)
 	return handler
