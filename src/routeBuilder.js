@@ -41,7 +41,7 @@ function requireHandler(operation, options) {
 
 function getMiddleware(customMiddleware, operation, authorizers) {
 	const middleware = []
-	const authCheck = security.createAuthCheck(operation.security, authorizers)
+	const authCheck = security.createAuthCheck(operation, authorizers)
 	const validationCheck = validation.createValidationCheck(operation)
 
 	if (authCheck) middleware.push(authCheck)

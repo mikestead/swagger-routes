@@ -4,7 +4,7 @@ const fs = require('fs')
 const expect = require('expect')
 const express = require('express')
 const FormData = require('form-data')
-const swaggered = require('../src/index')
+const addHandlers = require('../src/index')
 const multer = require('multer')
 const concat = require('concat-stream')
 const onFinished = require('on-finished')
@@ -39,16 +39,18 @@ describe('expressUpload', () => {
 			const upload = multer({})
 			let hasFileA = false
 			let hasFileB = false
-			swaggered.addRoutes(app, {
+			addHandlers(app, {
 				api: 'test/_fixture/upload/file-api.yml',
-				createHandler: () => ( {
-					middleware: upload.fields([ { name: 'fileA' }, { name: 'fileB' } ]),
-					handler: function handler(req, res) {
-						hasFileA = !!req.files.fileA
-						hasFileB = !!req.files.fileB
-						res.status(204).send()
-					}
-				} )
+				handlers: {
+					create: () => ( {
+						middleware: upload.fields([{name: 'fileA'}, {name: 'fileB'}]),
+						handler: function handler(req, res) {
+							hasFileA = !!req.files.fileA
+							hasFileB = !!req.files.fileB
+							res.status(204).send()
+						}
+					} )
+				}
 			})
 
 			app.use((err, req, res) => {

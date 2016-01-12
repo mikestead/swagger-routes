@@ -19,6 +19,8 @@ function disableHandler(operation, options) {
 }
 
 function disableOldHandlers(operations, options) {
+	if (!options.handlers.generate || options.handlers.create) return []
+
 	const filenames = fs.readdirSync(options.handlers.path)
 	const unknown = filenames.filter(name =>
 		name.endsWith('.js') &&

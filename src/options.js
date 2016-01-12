@@ -35,14 +35,14 @@ exports.applyDefaultOptions = applyDefaultOptions
 exports.applyDefaultAppOptions = applyDefaultAppOptions
 
 function applyDefaultOptions(options, extra) {
-	const handlers = expandFlattenedOption(options, 'handlers')
-	const authorizers = expandFlattenedOption(options, 'authorizers')
+	const handlers = expandFlattenedOption('handlers', options)
+	const authorizers = expandFlattenedOption('authorizers', options)
 
 	options = Object.assign({}, DEFAULT_OPTIONS, options, extra)
 	options.handlers = Object.assign({}, DEFAULT_OPTIONS.handlers, handlers)
 	options.authorizers = Object.assign({}, DEFAULT_OPTIONS.authorizers, authorizers)
-	options = applyTemplateOptions(options, 'handlers', fileHandlers)
-	options = applyTemplateOptions(options, 'authorizers', fileAuthorizers)
+	options = applyTemplateOptions('handlers', fileHandlers, options)
+	options = applyTemplateOptions('authorizers', fileAuthorizers, options)
 
 	return options
 }
@@ -54,7 +54,7 @@ function expandFlattenedOption(type, options) {
 	else return flattened
 }
 
-function applyTemplateOptions(options, type, fileModule) {
+function applyTemplateOptions(type, fileModule, options) {
 	if (options[type].generate) {
 		options[type].template = fileUtil.getTemplate(type, options)
 		if (!options[type].getTemplateView) {
@@ -63,7 +63,6 @@ function applyTemplateOptions(options, type, fileModule) {
 	}
 	return options
 }
-
 
 function applyDefaultAppOptions(app) {
 	if (isExpress(app)) {

@@ -29,7 +29,7 @@ function enableFile(id, data, type, options) {
 
 function renameFile(oldPath, filePath) {
 	fs.renameSync(oldPath, filePath)
-	return fileInfo(filePath, true, false)
+	return fileInfo(filePath, false, false)
 }
 
 function writeNewHandler(data, type, filePath, options) {
@@ -73,3 +73,8 @@ function fileInfo(filePath, gen, old) {
 		old
 	}
 }
+/*
+create,
+disabled,
+enabled
+ */

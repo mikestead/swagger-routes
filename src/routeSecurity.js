@@ -6,9 +6,9 @@ const fileAuthorizers = require('./fileAuthorizers')
 exports.getAuthorizers = getAuthorizers
 exports.createAuthCheck = createAuthCheck
 
-function getAuthorizers(security, options) {
-	return getDefinitionIds(security)
-		.map(id => ({ id, auth: getAuthorizer(id, security[id], options) }))
+function getAuthorizers(securityDefinitions, options) {
+	return getDefinitionIds(securityDefinitions)
+		.map(id => ({ id, auth: getAuthorizer(id, securityDefinitions[id], options) }))
 		.reduce((authorizers, info) => authorizers.set(info.id, info.auth), new Map())
 }
 
@@ -31,8 +31,8 @@ function requireAuthorizer(id, securityScheme, options) {
 	catch(e) { return null }
 }
 
-function createAuthCheck(security, authorizers) {
-	const ids = getDefinitionIds(security)
+function createAuthCheck(operation, authorizers) {
+	const ids = getDefinitionIds(operation.security)
 	if (!ids.length) return null
 
 	return function authorize(req, res, next) {
@@ -40,15 +40,32 @@ function createAuthCheck(security, authorizers) {
 			new Promise((rej, res) => {
 				const authorizer = authorizers.get(id)
 				if (typeof authorizer === 'function') {
-					req.securityScopes = security[id]
+					const requiredScopes = operation.security[id]
+					req.verifyScopes = function verifyScopes(scopes) {
+						return verifyRequiredScopes(requiredScopes, scopes)
+					}
 					authorizer(req, res, err => err ? rej(err) : res())
 				} else {
-					res.statusCode = 401
-					rej(new Error('Unauthorized'))
+					const e = new Error('Unauthorized')
+					e.status = 401
+					rej(e)
 				}
 			})
 		))
 		.then(() => next())
 		.catch(e => next(e))
 	}
+}
+
+function verifyRequiredScopes(requiredScopes, scopes) {
+	if (!requiredScopes || !requiredScopes.length) return undefined
+	if (!scopes) scopes = []
+
+	const hasRequiredScopes = requiredScopes.every(scope => scopes.indexOf(scope) !== -1);
+	if (!hasRequiredScopes) {
+		const e = new Error('Forbidden')
+		e.status = 403
+		return e
+	}
+	return undefined
 }
