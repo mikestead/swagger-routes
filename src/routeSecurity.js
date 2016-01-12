@@ -52,7 +52,7 @@ function createAuthCheck(operation, authorizers) {
 					// have correct scope(s), or if authorization is required.
 					// Assume the latter.
 					const e = new Error('Unauthorized')
-					e.status = 401
+					e.statusCode = e.status = 401
 					reject(e)
 				}
 			})
@@ -69,7 +69,7 @@ function verifyRequiredScopes(requiredScopes, scopes) {
 	const hasRequiredScopes = requiredScopes.every(scope => scopes.indexOf(scope) !== -1)
 	if (!hasRequiredScopes) {
 		const e = new Error('Forbidden')
-		e.status = 403
+		e.statusCode = e.status = 403
 		return e
 	}
 	return undefined
