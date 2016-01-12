@@ -43,7 +43,7 @@ describe('expressUpload', () => {
 				api: 'test/_fixture/upload/file-api.yml',
 				handlers: {
 					create: () => ( {
-						middleware: upload.fields([{name: 'fileA'}, {name: 'fileB'}]),
+						middleware: upload.fields([ { name: 'fileA' }, { name: 'fileB' } ]),
 						handler: function handler(req, res) {
 							hasFileA = !!req.files.fileA
 							hasFileB = !!req.files.fileB

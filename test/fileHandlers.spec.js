@@ -64,7 +64,7 @@ describe('fileHandlers', () => {
 
 	describe('disableOldHandlers', () => {
 		it('should disable handlers for operations which no longer exist', () => {
-			const listPetsOp2 = Object.assign({}, listPetsOp, {id: `${operationId}2`})
+			const listPetsOp2 = Object.assign({}, listPetsOp, { id: `${operationId}2` })
 			fileHandlers.enableHandler(listPetsOp2, options)
 			const fileInfos = fileHandlers.disableOldHandlers(operations, options)
 			const fileInfo = fileInfos[0]

@@ -1,6 +1,5 @@
 'use strict'
 
-const path = require('path')
 const fileAuthorizers = require('./fileAuthorizers')
 
 exports.getAuthorizers = getAuthorizers
@@ -61,7 +60,7 @@ function verifyRequiredScopes(requiredScopes, scopes) {
 	if (!requiredScopes || !requiredScopes.length) return undefined
 	if (!scopes) scopes = []
 
-	const hasRequiredScopes = requiredScopes.every(scope => scopes.indexOf(scope) !== -1);
+	const hasRequiredScopes = requiredScopes.every(scope => scopes.indexOf(scope) !== -1)
 	if (!hasRequiredScopes) {
 		const e = new Error('Forbidden')
 		e.status = 403

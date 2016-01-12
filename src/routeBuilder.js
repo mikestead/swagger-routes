@@ -1,6 +1,5 @@
 'use strict'
 
-const path = require('path')
 const fileHandlers = require('./fileHandlers')
 const security = require('./routeSecurity')
 const validation = require('./routeValidation')

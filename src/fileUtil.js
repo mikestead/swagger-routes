@@ -4,8 +4,6 @@ const path = require('path')
 const fs = require('fs')
 const Mustache = require('mustache')
 const util = require('./util')
-const swaggerSpec = require('./swaggerSpec')
-const Options = require('./options')
 
 exports.enableFile = enableFile
 exports.disableFile = disableFile
