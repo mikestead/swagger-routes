@@ -1,7 +1,7 @@
 'use strict'
 
 const expect = require('expect')
-const v = require('../src/routeValidation')
+const routeValidation = require('../src/routeValidation')
 const util = require('../src/swaggerSpec')
 
 const EMPTY_REQ = { params: {}, headers: {}, query: {}, body: {}, files: {}, accepts: () => true }
@@ -58,10 +58,12 @@ function newSpec(template, param) {
 }
 
 describe('validation', () => {
-	describe('validateParams', () => {
+	describe('validateRequest', () => {
+		const validateRequest = routeValidation.validateRequest
+
 		it('should enforce required params', () => {
 			const spec = newSpec(PARAM.STRING, { required: true })
-			const failure = v.validateRequest(EMPTY_REQ, spec)
+			const failure = validateRequest(EMPTY_REQ, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors.length).toBe(1)
@@ -70,7 +72,7 @@ describe('validation', () => {
 
 		it('should allow params which are not required to be missing', () => {
 			const spec = newSpec(PARAM.STRING, { required: false })
-			const failure = v.validateRequest(EMPTY_REQ, spec)
+			const failure = validateRequest(EMPTY_REQ, spec)
 
 			expect(failure).toNotExist()
 		})
@@ -78,7 +80,7 @@ describe('validation', () => {
 		it('should not allow an integer to have a decimal value', () => {
 			const spec = newSpec(PARAM.INT)
 			const req = newReq({ query: { INT: 2.3 } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('query.INT is not of a type(s) integer')
@@ -88,7 +90,7 @@ describe('validation', () => {
 			const spec = newSpec(PARAM.STRING)
 			const req = newReq({ params: { 'wrong': 'value' } })
 			req.app = true // simulate express request
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('path.wrong is an invalid path segment')
@@ -97,7 +99,7 @@ describe('validation', () => {
 		it('should respect allowEmptyValue in query parameters', () => {
 			const spec = newSpec(PARAM.INT, { allowEmptyValue: true })
 			const req = newReq({ query: { 'INT': '' } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toNotExist()
 		})
@@ -105,7 +107,7 @@ describe('validation', () => {
 		it('should respect allowEmptyValue in formData parameters', () => {
 			const spec = newSpec(PARAM.INT, { allowEmptyValue: true, 'in': 'formData' })
 			const req = newReq({ formData: { 'INT': '' } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toNotExist()
 		})
@@ -113,7 +115,7 @@ describe('validation', () => {
 		it('should ignore allowEmptyValue in parameters outside of formData or query', () => {
 			const spec = newSpec(PARAM.INT, { allowEmptyValue: true, 'in': 'path' })
 			const req = newReq({ params: { 'INT': '' } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('path.INT is not of a type(s) integer')
@@ -122,7 +124,7 @@ describe('validation', () => {
 		it('should restrict values to enum set', () => {
 			const spec = newSpec(PARAM.STRING, { enum:[ 'a', 'b', 'c' ] })
 			const req = newReq({ params: { 'STRING': 'd' } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('path.STRING is not one of enum values: a,b,c')
@@ -131,7 +133,7 @@ describe('validation', () => {
 		it('should restrict number to defined maximum', () => {
 			const spec = newSpec(PARAM.INT, { maximum: 10 })
 			const req = newReq({ query: { 'INT': 11 } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('query.INT must have a maximum value of 10')
@@ -140,7 +142,7 @@ describe('validation', () => {
 		it('should restrict number to defined exclusive maximum', () => {
 			const spec = newSpec(PARAM.INT, { maximum: 10, exclusiveMaximum: true })
 			const req = newReq({ query: { 'INT': 10 } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('query.INT must have a maximum value of 10')
@@ -149,7 +151,7 @@ describe('validation', () => {
 		it('should restrict number to defined minimum', () => {
 			const spec = newSpec(PARAM.INT, { minimum: 10 })
 			const req = newReq({ query: { 'INT': 9 } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('query.INT must have a minimum value of 10')
@@ -158,7 +160,7 @@ describe('validation', () => {
 		it('should restrict number to defined exclusive minimum', () => {
 			const spec = newSpec(PARAM.INT, { minimum: 10, exclusiveMinimum: true })
 			const req = newReq({ query: { 'INT': 10 } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('query.INT must have a minimum value of 10')
@@ -167,7 +169,7 @@ describe('validation', () => {
 		it('should restrict a string length to a defined maximum', () => {
 			const spec = newSpec(PARAM.STRING, { maxLength: 2 })
 			const req = newReq({ params: { 'STRING': 'long' } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('path.STRING does not meet maximum length of 2')
@@ -176,7 +178,7 @@ describe('validation', () => {
 		it('should restrict a string length to a defined minimum', () => {
 			const spec = newSpec(PARAM.STRING, { minLength: 2 })
 			const req = newReq({ params: { 'STRING': 'a' } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('path.STRING does not meet minimum length of 2')
@@ -185,7 +187,7 @@ describe('validation', () => {
 		it('should restrict a string to match a defined pattern', () => {
 			const spec = newSpec(PARAM.STRING, { pattern: '^s' })
 			const req = newReq({ params: { 'STRING': 'oops' } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('path.STRING does not match pattern "^s"')
@@ -194,7 +196,7 @@ describe('validation', () => {
 		it('should restrict an array length to a defined maximum', () => {
 			const spec = newSpec(PARAM.ARRAY, { maxItems: 2 })
 			const req = newReq({ query: { 'ARRAY': 'a,b,c' } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('query.ARRAY does not meet maximum length of 2')
@@ -203,7 +205,7 @@ describe('validation', () => {
 		it('should restrict an array length to a defined minimum', () => {
 			const spec = newSpec(PARAM.ARRAY, { minItems: 5 })
 			const req = newReq({ query: { 'ARRAY': 'a,b,c' } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('query.ARRAY does not meet minimum length of 5')
@@ -212,7 +214,7 @@ describe('validation', () => {
 		it('should restrict an array to unique items', () => {
 			const spec = newSpec(PARAM.ARRAY, { uniqueItems: true })
 			const req = newReq({ query: { 'ARRAY': 'a,a,c' } })
-			const failure = v.validateRequest(req, spec)
+			const failure = validateRequest(req, spec)
 
 			expect(failure).toExist()
 			expect(failure.errors[0].message).toBe('query.ARRAY contains duplicate item')

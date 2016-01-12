@@ -1,12 +1,12 @@
 'use strict'
 
 const expect = require('expect')
-const params = require('../src/routeParameters')
+const routeParameters = require('../src/routeParameters')
 
-describe('parameters', () => {
+describe('routeParameters', () => {
 	describe('formatGroupData', () => {
 		it('should apply default value to undefined parameter', () => {
-			const groupData = params.formatGroupData({
+			const groupData = routeParameters.formatGroupData({
 				properties: {
 					STRING: {
 						type: 'string',
@@ -20,7 +20,7 @@ describe('parameters', () => {
 		})
 
 		it('should ignore default value on required parameter', () => {
-			const groupData = params.formatGroupData({
+			const groupData = routeParameters.formatGroupData({
 				properties: {
 					STRING: {
 						type: 'string',
@@ -34,11 +34,11 @@ describe('parameters', () => {
 			expect(groupData.STRING).toNotExist()
 		})
 
-		Object.keys(params.COLLECTION_FORMAT).forEach(format => {
+		Object.keys(routeParameters.COLLECTION_FORMAT).forEach(format => {
 			it(`should convert ${format} collection format to array`, () => {
-				const DELIM = params.COLLECTION_FORMAT[format]
+				const DELIM = routeParameters.COLLECTION_FORMAT[format]
 				const VALUE = [ 'a','b','c' ].join(DELIM)
-				const groupData = params.formatGroupData({
+				const groupData = routeParameters.formatGroupData({
 					properties: {
 						ARRAY: {
 							type: 'array',
