@@ -31,26 +31,32 @@ function requireAuthorizer(id, securityScheme, options) {
 }
 
 function createAuthCheck(operation, authorizers) {
-	const ids = getDefinitionIds(operation.security)
-	if (!ids.length) return null
+	const security = operation.security || []
+	if (!security.length) return null
 
 	return function authorize(req, res, next) {
-		Promise.all(ids.map(id =>
-			new Promise((rej, res) => {
+		return Promise.all(security.map(scheme => {
+			const id = Object.keys(scheme)[0]
+			if (!id || id.startsWith('x-')) return null
+
+			return new Promise((resolve, reject) => {
 				const authorizer = authorizers.get(id)
 				if (typeof authorizer === 'function') {
-					const requiredScopes = operation.security[id]
+					const requiredScopes = scheme[id]
 					req.verifyScopes = function verifyScopes(scopes) {
 						return verifyRequiredScopes(requiredScopes, scopes)
 					}
-					authorizer(req, res, err => err ? rej(err) : res())
+					authorizer(req, res, err => err ? reject(err) : resolve())
 				} else {
+					// Unable to determine at this point if authorized but don't
+					// have correct scope(s), or if authorization is required.
+					// Assume the latter.
 					const e = new Error('Unauthorized')
 					e.status = 401
-					rej(e)
+					reject(e)
 				}
 			})
-		))
+		}))
 		.then(() => next())
 		.catch(e => next(e))
 	}
