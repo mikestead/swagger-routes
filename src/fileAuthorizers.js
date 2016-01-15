@@ -9,7 +9,7 @@ exports.getTemplateView = getTemplateView
 
 
 function enableAuthorizer(schemeId, securityScheme, options) {
-	return fileUtil.enableFile(schemeId, securityScheme, 'authorizers', options)
+	return fileUtil.enableFile(schemeId, Object.assign({id: schemeId}, securityScheme), 'authorizers', options)
 }
 
 function disableAuthorizer(schemeId, options) {
@@ -20,6 +20,6 @@ function disableOldAuthorizers() {
 
 }
 
-function getTemplateView() {
-	return {}
+function getTemplateView(securitySchema) {
+	return securitySchema
 }

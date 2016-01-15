@@ -87,12 +87,22 @@ function getPaths(spec) {
 }
 
 function getPathOperations(pathInfo, spec) {
+	const xProps = getXProps(pathInfo)
 	return Object.keys(pathInfo)
 		.filter(key => HTTP_METHODS.indexOf(key) !== -1)
-		.map(method => createPathOperation(method, pathInfo, spec))
+		.map(method => createPathOperation(method, pathInfo, xProps, spec))
 }
 
-function createPathOperation(method, pathInfo, spec) {
+function getXProps(data) {
+	return Object.keys(data)
+		.filter(prop => prop.startsWith('x-'))
+		.reduce((xProps, prop) => {
+			xProps[prop] = data[prop]
+			return xProps
+		}, {})
+}
+
+function createPathOperation(method, pathInfo, pathsXProps, spec) {
 	const operationInfo = resolveParamRefs(pathInfo[method], spec)
 	const operation = Object.assign({
 		id: operationInfo.operationId,
@@ -101,8 +111,9 @@ function createPathOperation(method, pathInfo, spec) {
 		consumes: getOperationProperty('consumes', operationInfo, spec),
 		produces: getOperationProperty('produces', operationInfo, spec),
 		paramGroupSchemas: createParamGroupSchemas(operationInfo.parameters, spec),
+		responseSchemas: createResponseSchemas(operationInfo.responses, spec),
 		method
-	}, operationInfo)
+	}, pathsXProps, operationInfo)
 	delete operation.operationId
 	return operation
 }
@@ -116,6 +127,14 @@ function resolveParamRefs(paramInfo, spec) {
 function getRef(data, spec) {
 	return (data && data.$ref) ? resolveRef(data.$ref, spec) : data
 }
+
+//function resolveRefs(data, spec) {
+//	for (let name in data) {
+//		if (name === '$ref') {
+//			resolveRef(data.)
+//		}
+//	}
+//}
 
 function resolveRef(ref, spec) {
 	const parts = ref.split('/')
@@ -163,4 +182,18 @@ function createParamGroupSchema(params, spec) {
 			.filter(param => param.required)
 			.map(param => param.name)
 	}
+}
+
+function createResponseSchemas(responses, spec) {
+	return Object.keys(responses).map(id => {
+		const response = Object.assign({ id }, responses[id])
+		if (response.schema) {
+			response.schema = getRef(response.schema, spec)
+			response.schema.items = getRef(response.schema.items, spec)
+		}
+		return response
+	}).reduce((result, response) => {
+		result[response.id] = response
+		return result
+	}, {})
 }

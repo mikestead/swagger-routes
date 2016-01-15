@@ -71,8 +71,3 @@ function fileInfo(filePath, gen, old) {
 		old
 	}
 }
-/*
-create,
-disabled,
-enabled
- */
