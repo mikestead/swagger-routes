@@ -13,7 +13,7 @@ import swaggerRoutes from 'swagger-routes'
 swaggerRoutes(app, {    // express app or restify server
     api: './api.yml',
     handlers:  './src/handlers',
-    authorizers: './src/security'
+    authorizers: './src/handlers/security'
 })
 ```
 ##### Options
@@ -163,7 +163,7 @@ The file should be named after the security scheme and reside in the directory p
 export default function petstore_auth(req, res, next) {
     const token = decodeToken(req.headers.authorization)
     if (!token) {
-        const error = new Error('Invalid access token')
+        const error = new Error('Unauthorized')
         error.status = error.statusCode = 401
         next(error)
     } else {
@@ -189,7 +189,7 @@ The default template is defined [here](https://github.com/mikestead/swagger-rout
 {
     ...
     authorizers: {
-    	path: './src/security',
+    	path: './src/handlers/security',
     	template: './template/authorizer.mustache', // can also be set with a loaded template
     	getTemplateView: operation => operation, // define the object to be rendered by your template
     	create: operation => (req, res) => {}, // see Authorizer Factory section for details
