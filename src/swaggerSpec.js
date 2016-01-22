@@ -103,7 +103,9 @@ function getXProps(data) {
 }
 
 function createPathOperation(method, pathInfo, pathsXProps, spec) {
-	const operationInfo = resolveParamRefs(pathInfo[method], spec)
+	const operationInfo = resolveRefs(pathInfo[method], spec)
+	if (!operationInfo.parameters) operationInfo.parameters = []
+	if (!operationInfo.responses) operationInfo.responses = {}
 	const operation = Object.assign({
 		id: operationInfo.operationId,
 		path: pathInfo.path,
@@ -118,32 +120,41 @@ function createPathOperation(method, pathInfo, pathsXProps, spec) {
 	return operation
 }
 
-function resolveParamRefs(paramInfo, spec) {
-	const params = paramInfo.parameters || []
-	paramInfo.parameters = params.map(param => getRef(param, spec))
-	return paramInfo
-}
+const refCache = new Map()
+const dataCache = new Set()
 
-function getRef(data, spec) {
-	return (data && data.$ref) ? resolveRef(data.$ref, spec) : data
-}
+function resolveRefs(data, spec) {
+	if (!data || dataCache.has(data)) return data
 
-//function resolveRefs(data, spec) {
-//	for (let name in data) {
-//		if (name === '$ref') {
-//			resolveRef(data.)
-//		}
-//	}
-//}
+	if (Array.isArray(data)) {
+		return data.map(item => resolveRefs(item, spec))
+	} else if (typeof data === 'object') {
+		if (data.$ref) {
+			const resolved = resolveRef(data.$ref, spec)
+			delete data.$ref
+			data = Object.assign({}, resolved, data)
+		}
+		dataCache.add(data)
+
+		for (let name in data) {
+			data[name] = resolveRefs(data[name], spec)
+		}
+	}
+	return data
+}
 
 function resolveRef(ref, spec) {
+	//if (refCache.has(ref)) return refCache.get(ref)
 	const parts = ref.split('/')
-	parts.shift()
+
+	assert.ok(parts.shift() === '#', `Only support JSON Schema $refs in format '#/path/to/ref'`)
+
 	let value = spec
 	while (parts.length) {
 		value = value[parts.shift()]
 		assert.ok(value, `Invalid schema reference: ${ref}`)
 	}
+	refCache.set(ref, value)
 	return value
 }
 
@@ -155,7 +166,7 @@ function createParamGroupSchemas(parameters, spec) {
 	return PARAM_GROUPS
 		.map(loc => {
 			const params = parameters.filter(param => param.in === loc)
-			return { 'in': loc, schema: createParamGroupSchema(params, spec) }
+			return { 'in': loc, schema: createParamsSchema(params, spec) }
 		})
 		.filter(param => Object.keys(param.schema.properties).length)
 		.reduce((map, param) => {
@@ -164,17 +175,10 @@ function createParamGroupSchemas(parameters, spec) {
 		}, {})
 }
 
-function createParamGroupSchema(params, spec) {
+function createParamsSchema(params) {
 	return {
 		type: 'object',
 		properties:	params.reduce((props, param) => {
-			if (param.schema) {
-				param.schema = getRef(param.schema, spec)
-				param.schema.items = getRef(param.schema.items, spec)
-			}
-			else if (param.items) {
-				param.items = getRef(param.items, spec)
-			}
 			props[param.name] = param = Object.assign({}, param)
 			return props
 		}, {}),
@@ -185,15 +189,24 @@ function createParamGroupSchema(params, spec) {
 }
 
 function createResponseSchemas(responses, spec) {
-	return Object.keys(responses).map(id => {
-		const response = Object.assign({ id }, responses[id])
-		if (response.schema) {
-			response.schema = getRef(response.schema, spec)
-			response.schema.items = getRef(response.schema.items, spec)
-		}
-		return response
-	}).reduce((result, response) => {
-		result[response.id] = response
-		return result
-	}, {})
+	return Object.keys(responses)
+		.map(id => ({
+			id,
+			bodySchema: responses[id].schema,
+			headersSchema: createResponseHeadersSchema(responses[id].headers, spec)
+		}))
+		.reduce((result, response) => {
+			result[response.id] = response
+			return result
+		}, {})
+}
+
+function createResponseHeadersSchema(headers) {
+	if (!headers) return undefined
+	return {
+		type: 'object',
+		properties:	headers,
+		required: Object.keys(headers)
+			.filter(name => headers[name].required)
+	}
 }

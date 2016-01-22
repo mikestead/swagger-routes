@@ -40,8 +40,19 @@ paths:
         default:
           description: unexpected error
           schema:
-            $ref: Error
+            $ref: '#/definitions/Error'
       security:
         - petstore_auth:
           - write:pets
           - read:pets
+definitions:
+  Error:
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string

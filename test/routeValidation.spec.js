@@ -54,7 +54,7 @@ function newSpec(template, param) {
 	info[method] = {
 		parameters: [ param ]
 	}
-	return util.createPathOperation(method, info, {})
+	return util.createPathOperation(method, info, {}, {})
 }
 
 describe('validation', () => {
