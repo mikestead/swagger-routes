@@ -11,8 +11,8 @@ A tool to generate and register [Restify](http://restify.com) or [Express](http:
 import swaggerRoutes from 'swagger-routes'
 
 swaggerRoutes(app, {    // express app or restify server
-    api: './api.yml'
-    handlers:  './src/handlers'
+    api: './api.yml',
+    handlers:  './src/handlers',
     authorizers: './src/security'
 })
 ```
@@ -57,8 +57,8 @@ Middleware can be an ordered list.
 
 ```javascript
 export const middleware = [
-    function preprocess1(req, res, next) { next(); },
-    function preprocess2(req, res, next) { next(); }
+    function preprocess1(req, res, next) { next() },
+    function preprocess2(req, res, next) { next() }
 ]
 ```
 
@@ -87,9 +87,10 @@ The default template is defined [here](https://github.com/mikestead/swagger-rout
     ...
     handlers: {
     	path: './src/handlers',
-    	template: './template/handler.mustache', // can also be set with a loaded template,
+    	template: './template/handler.mustache', // can also be set with a loaded template
     	getTemplateView: operation => operation, // define the object to be rendered by your template
-    	generate: true // hander generation on by default, can be turned off here
+    	create: operation => (req, res) => {}, // handler factory, see Handler Factory section for details
+    	generate: true // hander file generation on by default, can be turned off here
     }
 }
 ```
@@ -101,24 +102,24 @@ processing onto service classes.
 
 ##### Create Handler Function
 
-You can define a `createHandler` function when registering your routes. It takes a Swagger operation and returns the request handler responsible for dealing with it.
-
-If a handler function is returned then it will take precedence over a handler file for the same operation.
+You can define `handlers` as a function when registering your routes. It receives a Swagger operation and returns the request handler responsible for dealing with it.
 
 ```javascript
-import { addRoutes } from 'swagger-routes'
+import swaggerRoutes from 'swagger-routes'
 
-addRoutes(app, {
+swaggerRoutes(app, {
     api: './api.yml',
-    createHandler
+    handlers:  createHandler
 })
-
+```
 function createHandler(operation) {
     return function handler(req, res, next) {
         res.send(operation.id)
     }
 }
 ```
+
+If a handler function is returned then it will take precedence over a handler file for the same operation.
 
 ##### Route Middleware
 
@@ -127,8 +128,8 @@ Just as a file handler can define route middleware, so can the `createHandler`.
 ```javascript
 function createHandler(operation) {
     return {
-        middleware: (req, res, next) => next(),
-        handler: (req, res) => res.send(operation.id)
+        middleware: function preprocess(req, res, next) { next() },
+        handler: function handler(req, res) { res.send(operation.id) }
     }
 }
 ```
@@ -139,13 +140,14 @@ Route middleware can define an ordered list too.
 function createHandler(operation) {
     return {
         middleware: [
-            (req, res, next) => next(), // 1
-            (req, res, next) => next()  // 2
+            function preprocess1(req, res, next) { next() },
+            function preprocess2(req, res, next) { next() }
         ],
-        handler: (req, res) => res.send(operation.id)
+        handler: function handler(req, res) { res.send(operation.id) }
     }
 }
 ```
+
 #### Route Stack Execution Order
 
 1. authorizer middleware: If there are security restrictions on a route then an authorizer will need to verify the request first.
@@ -181,7 +183,7 @@ import { addRoutes } from 'swagger-routes'
 
 addRoutes(app, {
     api: './api.yml',
-    createAuthorizer
+    authorizers: createAuthorizer
 })
 
 function createAuthorizer(schemeId, securityScheme) {
