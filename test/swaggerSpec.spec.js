@@ -86,22 +86,22 @@ describe('swaggerSpec', () => {
 			const opt = operations.find(opt => opt.id === 'listPets')
 			expect(opt.responseSchemas['200']).toExist()
 			expect(opt.responseSchemas['200'].bodySchema).toEqual({
-				"type": "array",
-				"items": {
-					"required": [
-						"id",
-						"name"
+				type: 'array',
+				items: {
+					required: [
+						'id',
+						'name'
 					],
-					"properties": {
-						"id": {
-							"type": "integer",
-							"format": "int64"
+					properties: {
+						id: {
+							type: 'integer',
+							format: 'int64'
 						},
-						"name": {
-							"type": "string"
+						name: {
+							type: 'string'
 						},
-						"tag": {
-							"type": "string"
+						tag: {
+							type: 'string'
 						}
 					}
 				}
@@ -113,14 +113,14 @@ describe('swaggerSpec', () => {
 			const opt = operations.find(opt => opt.id === 'listPets')
 			expect(opt.responseSchemas['200']).toExist()
 			expect(opt.responseSchemas['200'].headersSchema).toEqual({
-				"type": "object",
-				"properties": {
-					"x-next": {
-						"type": "string",
-						"description": "A link to the next page of responses"
+				type: 'object',
+				properties: {
+					'x-next': {
+						type: 'string',
+						description: 'A link to the next page of responses'
 					}
 				},
-				"required": []
+				required: []
 			})
 		})
 	})

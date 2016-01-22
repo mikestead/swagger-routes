@@ -37,7 +37,7 @@ describe('routeSecurity', () => {
 
 		it('should pass authorization if correct security scopes provided', () => {
 			const security2 = {}
-			security2[schemeIdB] = ['scopeA']
+			security2[schemeIdB] = [ 'scopeA' ]
 			createPetsOp.security.push(security2)
 
 			let checkA = true
@@ -94,7 +94,7 @@ describe('routeSecurity', () => {
 
 		it('should fail on first authorization error', () => {
 			const security2 = {}
-			security2[schemeIdB] = ['scopeA']
+			security2[schemeIdB] = [ 'scopeA' ]
 			createPetsOp.security.push(security2)
 
 			let errorA = true
@@ -103,11 +103,11 @@ describe('routeSecurity', () => {
 
 			const authorizers = new Map()
 			authorizers.set(schemeIdA, (req, res, next) => {
-				errorA = req.verifyScopes(['write:pets']) // missing a required scope so should fail
+				errorA = req.verifyScopes([ 'write:pets' ]) // missing a required scope so should fail
 				next(errorA)
 			})
 			authorizers.set(schemeIdB, (req, res, next) => {
-				errorB = req.verifyScopes(['scopeA'])
+				errorB = req.verifyScopes([ 'scopeA' ])
 				next(errorB)
 			})
 			const authorize = routeSecurity.createAuthCheck(createPetsOp, authorizers)

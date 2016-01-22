@@ -15,23 +15,24 @@ exports.buildSpecs = buildSpecs
  * Both request and response of an operation call are validated for conformity
  * with your Swagger document.
  *
- * @param options {object}
+ * @param {object} options
  *  - `api` path to your Swagger spec, or the loaded spec reference.
  *  - `host` server host + port where your tests will run e.g. `localhost:3453`
  *  - `getOperationTests(op)` function to return the set of tests for an operation. Falls back to operation['x-tests'].
  *  - `maxTimeout` maximum time a test can take to complete
  *  - `startServer(done)` function called before all tests where you can start your local server
  *  - `stopServer(done)`function called after all tests where you can stop your local server
+ * @return {void}
  */
 function buildSpecs(options) {
 	options = Object.assign({}, options)
-	if (!options.getOperationTests) options.getOperationTests = op => {}
+	if (!options.getOperationTests) options.getOperationTests = () => {}
 
 	const api = swaggerSpec.getSpecSync(options.api)
 	const operations = swaggerSpec.getAllOperations(api)
 
-	describe(api.info.title, function() {
-		this.timeout(options.maxTimeout || 10000);
+	describe(api.info.title, function () {
+		this.timeout(options.maxTimeout || 10000)
 
 		before(done => options.startServer(done))
 		after(done => options.stopServer(done))
@@ -60,7 +61,7 @@ function buildSpecs(options) {
 function createRequest(op, testReqData, options) {
 	let pathname = op.fullPath
 	if (testReqData.path) {
-		pathname = Object.keys(req.path)
+		pathname = Object.keys(testReqData.path)
 			.reduce((p, t) =>
 				p.replace(new RegExp(`{${t}}`, 'g'), testReqData.path[t]), pathname)
 	}
@@ -81,7 +82,7 @@ function validateRequest(req, test, op) {
 	const groupSchema = op.paramGroupSchemas
 	swaggerSpec.PARAM_GROUPS.forEach(groupId => {
 		if (groupSchema[groupId]) {
-			jsonSchema.validate(test.request[groupId], groupSchema[groupId], {throwError: true})
+			jsonSchema.validate(test.request[groupId], groupSchema[groupId], { throwError: true })
 		}
 	})
 }
@@ -103,12 +104,12 @@ function validateStatus(res, id) {
 
 function validateHeaders(res, headersSchema) {
 	if (headersSchema) {
-		jsonSchema.validate(res.headers, headersSchema, {throwError: true})
+		jsonSchema.validate(res.headers, headersSchema, { throwError: true })
 	}
 }
 function validateBody(res, bodySchema) {
 	if (bodySchema) {
-		jsonSchema.validate(res.data, bodySchema, {throwError: true})
+		jsonSchema.validate(res.data, bodySchema, { throwError: true })
 	}
 }
 
