@@ -71,7 +71,7 @@ This tool is on by default so check your handlers folder the first time you run 
 it should be poulated with handler stubs for each operation defined in your Swagger document.
 
 Each time you start your app `swaggerRoutes` will see if you have any missing operation handlers and generate
-stub handler for them. If a handler file exists it won't be touched, i.e. this is non-destructive so you are free
+stub handler for any which are. If a handler file exists it won't be touched, i.e. this is non-destructive so you are free
 to edit them.
 
 When a re-run finds handlers no longer in use they will be renamed with an `_` prefix, so
@@ -80,7 +80,7 @@ and remove / rename them if you wish.
 
 If you later enable a handler again in your spec and re-run, then the underscore will be removed.
 
-The default template is defined [here](https://github.com/mikestead/swagger-routes/blob/master/template/handler.mustache) but you can supploy your own by expanding the `handlers` option e.g.
+The default template is defined [here](https://github.com/mikestead/swagger-routes/blob/master/template/handler.mustache) but you can supply your own by expanding the `handlers` option e.g.
 
 ```javascript
 {
@@ -89,8 +89,8 @@ The default template is defined [here](https://github.com/mikestead/swagger-rout
     	path: './src/handlers',
     	template: './template/handler.mustache', // can also be set with a loaded template
     	getTemplateView: operation => operation, // define the object to be rendered by your template
-    	create: operation => (req, res) => {}, // handler factory, see Handler Factory section for details
-    	generate: true // hander file generation on by default, can be turned off here
+    	create: operation => (req, res) => {}, // see Handler Factory section for details
+    	generate: true // hander file generation on by default
     }
 }
 ```
@@ -100,9 +100,9 @@ The default template is defined [here](https://github.com/mikestead/swagger-rout
 The factory function is a better option to a file if handlers are quite similar e.g. delegate their request
 processing onto service classes.
 
-##### Create Handler Function
+##### Creating a Handler Factory
 
-You can define `handlers` as a function when registering your routes. It receives a Swagger operation and returns the request handler responsible for dealing with it.
+You can define `handlers` as a function when registering your routes. It receives a Swagger [operation](#operation-object) and returns the request handler responsible for dealing with it.
 
 ```javascript
 import swaggerRoutes from 'swagger-routes'
@@ -111,7 +111,7 @@ swaggerRoutes(app, {
     api: './api.yml',
     handlers:  createHandler
 })
-```
+
 function createHandler(operation) {
     return function handler(req, res, next) {
         res.send(operation.id)
@@ -123,7 +123,7 @@ If a handler function is returned then it will take precedence over a handler fi
 
 ##### Route Middleware
 
-Just as a file handler can define route middleware, so can the `createHandler`.
+Just as a file handler can define route middleware, so can `createHandler`.
 
 ```javascript
 function createHandler(operation) {
@@ -134,7 +134,7 @@ function createHandler(operation) {
 }
 ```
 
-Route middleware can define an ordered list too.
+As before, route middleware can be an ordered list.
 
 ```javascript
 function createHandler(operation) {
@@ -148,38 +148,41 @@ function createHandler(operation) {
 }
 ```
 
-#### Route Stack Execution Order
 
-1. authorizer middleware: If there are security restrictions on a route then an authorizer will need to verify the request first.
-2. custom middleware: If the route defines one or more middleware these will be executed in order next.
-3. validation middleware: The incoming request will now be validated against the Swagger spec for the given operation.
-4. handler: Assuming all previous steps pass, the handler is now executed.
+### Authorizers
 
-### OAuth2 Security
-
-When your Swagger api specifies one or more OAuth2 [security schemes](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#implicit-oauth2-sample) then routes which opt into one or more of these schemes can be pretected by an authorizer function.
+When your Swagger api specifies one or more OAuth2 [security schemes](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#implicit-oauth2-sample) then routes which opt into one or more of these schemes can be pretected by an authorizer middleware.
 
 Just like handlers, you can define an authorizer in a file or via a factory.
 
 #### File Authorizer
 
-The file should be named after the security scheme and reside in the directory path defined by the `security` option. It should export a single middleware function to authorize a request.
+The file should be named after the security scheme and reside in the directory path defined by the `authorizers` option. It should export a single middleware function to authorize a request.
 
 ```javascript
 export default function petstore_auth(req, res, next) {
-	const token = decodeJsonToken(req.headers.authorization);
-	if (hasRequiredScopes(token, req.requiredScopes)) {
-		next();
-	} else {
-		next(new restify.ForbiddenError());
-	}
+    const token = decodeToken(req.headers.authorization)
+    if (!token) {
+        const error = new Error('Invalid access token')
+        error.status = error.statusCode = 401
+        next(error)
+    } else {
+        const scopes = getTokenScopes(token)
+        next(req.verifyScopes(scopes))
+    }
 }
 ```
+
+The above is one example of how this can work.
+
+As you can see a `verifyScopes` function is supplied to the req. It takes an array of scopes you decode from the authenticated request and verifies that the required scope(s) are present. If they're not a `403 Forbidden` [error](https://en.wikipedia.org/wiki/HTTP_403#Difference_from_status_.22401_Unauthorized.22) is returned.
+
+Remember if no credentials are supplied a `401 Unauthorized` should be returned.
 
 #### Authorizer Factory
 
 ```javascript
-import { addRoutes } from 'swagger-routes'
+import swaggerRoutes from 'swagger-routes'
 
 addRoutes(app, {
     api: './api.yml',
@@ -188,15 +191,25 @@ addRoutes(app, {
 
 function createAuthorizer(schemeId, securityScheme) {
     return function authorizer(req, res, next) {
-    	const token = decodeJsonToken(req.headers.authorization);
-    	if (hasRequiredScopes(token, req.requiredScopes)) {
-    		next();
-    	} else {
-    		next(new restify.ForbiddenError());
-    	}
+        const token = decodeToken(req.headers.authorization)
+        if (!token) {
+            const error = new Error('Invalid access token')
+            error.status = error.statusCode = 401
+            next(error)
+        } else {
+            const scopes = getTokenScopes(token)
+            next(req.verifyScopes(scopes))
+        }
     }
 }
 ```
+
+### Route Stack Execution Order
+
+1. authorizer middleware: If there are security restrictions on a route then an authorizer will need to verify the request first.
+2. custom middleware: If the route defines one or more middleware these will be executed in order next.
+3. validation middleware: The incoming request will now be validated against the Swagger spec for the given operation.
+4. handler: Assuming all previous steps pass, the handler is now executed.
 
 ### Operation Object
 
