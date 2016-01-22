@@ -8,20 +8,20 @@ A tool to generate and register [Restify](http://restify.com) or [Express](http:
 ### Usage
 
 ```javascript
-import { addHandlers } from 'swagger-routes'
+import swaggerRoutes from 'swagger-routes'
 
-addHandlers(app, {      // express app or restify server
-    api: './api.yml'    // path to your Swagger spec, or the loaded spec reference
+swaggerRoutes(app, {    // express app or restify server
+    api: './api.yml'
+    handlers:  './src/handlers'
+    authorizers: './src/security'
 })
 ```
 ##### Options
 
 - `api`: path to your Swagger spec, or the loaded spec reference.
 - `docsPath`: url path to serve your swagger api json. Defaults to `/api-docs`.
-- `handlers`: directory where your handler files reside. Defaults to `./handlers`.
-- `security`: directory where your authorizer files reside. Defaults to `./security`.
-- `createHandler`: Function to create handlers. If specified, overrides `handlers` file lookup.
-- `createAuthorizer`: Function to create authorizers. If specified, overrides `security` authorizer file lookup.
+- `handlers`: directory where your handler files reside. Defaults to `./handlers`. Can alternatively be a function to return a handler function given an operation.
+- `authorizers`: directory where your authorizer files reside. Defaults to `./security`. Can alternatively be a function to return an authorizer middleware given a swagger security scheme.
 
 ### Operation Handlers
 
@@ -30,8 +30,7 @@ provide a factory function which creates a handler function given an operation.
 
 #### Handler Files
 
-Using individual handler files is a good choice if each handler needs quite unique logic 
-to deal with an operation request.
+Using individual handler files is a good choice if each handler needs unique logic to deal with an operation request.
 
 A handler file must be named after the Swagger operation it handles e.g. `listPets.js`, and all 
 handler files must reside in the same directory.
@@ -58,40 +57,42 @@ Middleware can be an ordered list.
 
 ```javascript
 export const middleware = [
-    (req, res, next) => next(), // 1
-    (req, res, next) => next()  // 2
+    function preprocess1(req, res, next) { next(); },
+    function preprocess2(req, res, next) { next(); }
 ]
 ```
 
 ##### Generating Handler Files
 
-To save you a bunch of boilerplate there's a bundled tool to generate handler files based on operations in
-your Swagger spec using a [Mustache](https://mustache.github.io) template.
+To save you some time there's a bundled tool to generate handler files based on operations in
+your Swagger spec, together with a [Mustache](https://mustache.github.io) template.
 
-```javascript
-import { genHandlers } from 'swagger-routes'
+This tool is on by default so check your handlers folder the first time you run `swaggerRoutes` and
+it should be poulated with handler stubs for each operation defined in your Swagger document.
 
-genHandlers(
-    './api.yml',    // path to your Swagger spec, or the loaded spec reference
-    './handlers',   // directory to write operation your handler files
-    options
-)
-```
-
-###### Options
-
-- `templateFile`: path to the Mustache template for your handler. Defaults to point at  [this](https://github.com/mikestead/swagger-routes/blob/master/template/handler.mustache),
-- `template`: loaded Mustache template to use instead of `templateFile`. Defaults to `undefined`.
-- `getTemplateView`: function which takes an operation and returns the data to feed to the template. Defaults to return the operation.
-
-If you re-run `genHandlers` over existing handlers the originals will remain in place, i.e. this
-operation is non-destructive.
+Each time you start your app `swaggerRoutes` will see if you have any missing operation handlers and generate
+stub handler for them. If a handler file exists it won't be touched, i.e. this is non-destructive so you are free
+to edit them.
 
 When a re-run finds handlers no longer in use they will be renamed with an `_` prefix, so
 `listPets.js` would become `_listPets.js`. This allows you to identify handlers no longer in use
-and remove them if you wish.
+and remove / rename them if you wish.
 
-If later you enabled a handler again in your spec and re-run, then the underscore will be removed.
+If you later enable a handler again in your spec and re-run, then the underscore will be removed.
+
+The default template is defined [here](https://github.com/mikestead/swagger-routes/blob/master/template/handler.mustache) but you can supploy your own by expanding the `handlers` option e.g.
+
+```javascript
+{
+    ...
+    handlers: {
+    	path: './src/handlers',
+    	template: './template/handler.mustache', // can also be set with a loaded template,
+    	getTemplateView: operation => operation, // define the object to be rendered by your template
+    	generate: true // hander generation on by default, can be turned off here
+    }
+}
+```
 
 #### Handler Factory
 
