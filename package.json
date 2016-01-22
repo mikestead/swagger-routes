@@ -1,7 +1,7 @@
 {
   "name": "swagger-routes",
   "version": "1.0.0",
-  "description": "Generate and register route handlers from a Swagger specification",
+  "description": "Generate Express or Restify route handlers from a Swagger specification",
   "main": "src/index",
   "keywords": [
     "swagger",
@@ -34,6 +34,7 @@
     "test": "mocha --recursive"
   },
   "dependencies": {
+    "axios": "^0.9.0",
     "js-yaml": "^3.4.6",
     "jsonschema": "1.0.2",
     "mkdirp": "^0.5.1",
