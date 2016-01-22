@@ -179,6 +179,25 @@ As you can see a `verifyScopes` function is supplied to the req. It takes an arr
 
 Remember if no credentials are supplied a `401 Unauthorized` should be returned.
 
+##### Generating Handler Files
+
+Much like hanlder files, authorizer file stubs will be generated and managed for you too.
+
+The default template is defined [here](https://github.com/mikestead/swagger-routes/blob/master/template/authorizer.mustache) but you can supply your own by expanding the `authorizers` option e.g.
+
+```javascript
+{
+    ...
+    authorizers: {
+    	path: './src/security',
+    	template: './template/authorizer.mustache', // can also be set with a loaded template
+    	getTemplateView: operation => operation, // define the object to be rendered by your template
+    	create: operation => (req, res) => {}, // see Authorizer Factory section for details
+    	generate: true // authorizer file generation on by default
+    }
+}
+```
+
 #### Authorizer Factory
 
 ```javascript
@@ -204,12 +223,16 @@ function createAuthorizer(schemeId, securityScheme) {
 }
 ```
 
-### Route Stack Execution Order
+### Request Validation
 
-1. authorizer middleware: If there are security restrictions on a route then an authorizer will need to verify the request first.
-2. custom middleware: If the route defines one or more middleware these will be executed in order next.
-3. validation middleware: The incoming request will now be validated against the Swagger spec for the given operation.
-4. handler: Assuming all previous steps pass, the handler is now executed.
+Each incoming request which makes it to a handler will be run through request validation middleware. This executes [JSON Schema](http://json-schema.org) validation on the request to ensure it meets the Swagger specification you've defined. A failure to meet this requirement will cause the request to fail and the handler not to be executed.
+
+## Route Stack Execution Order
+
+1. `custom middleware` If the route defines one or more middleware these will be executed in order.
+1. `authorizer middleware` If there are security restrictions on a route then an authorizer for each will need to verify the rights attached to the request.
+1. `validation middleware` The incoming request will now be validated against the Swagger spec for the given operation.
+1. `handler` Assuming all previous steps pass, the handler is now executed.
 
 ### Operation Object
 
