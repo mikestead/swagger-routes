@@ -13,7 +13,7 @@ import swaggerRoutes from 'swagger-routes'
 swaggerRoutes(app, {    // express app or restify server
     api: './api.yml',
     handlers:  './src/handlers',
-    authorizers: './src/security'
+    authorizers: './src/handlers/security'
 })
 ```
 ##### Options
@@ -148,7 +148,6 @@ function createHandler(operation) {
 }
 ```
 
-
 ### Authorizers
 
 When your Swagger api specifies one or more OAuth2 [security schemes](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#implicit-oauth2-sample) then routes which opt into one or more of these schemes can be pretected by an authorizer middleware.
@@ -162,13 +161,13 @@ The file should be named after the security scheme and reside in the directory p
 ```javascript
 export default function petstore_auth(req, res, next) {
     const token = decodeToken(req.headers.authorization)
-    if (!token) {
-        const error = new Error('Invalid access token')
-        error.status = error.statusCode = 401
-        next(error)
-    } else {
+    if (token) {
         const scopes = getTokenScopes(token)
         next(req.verifyScopes(scopes))
+    } else {
+        const error = new Error('Unauthorized')
+        error.status = error.statusCode = 401
+        next(error)
     }
 }
 ```
@@ -189,7 +188,7 @@ The default template is defined [here](https://github.com/mikestead/swagger-rout
 {
     ...
     authorizers: {
-    	path: './src/security',
+    	path: './src/handlers/security',
     	template: './template/authorizer.mustache', // can also be set with a loaded template
     	getTemplateView: operation => operation, // define the object to be rendered by your template
     	create: operation => (req, res) => {}, // see Authorizer Factory section for details
@@ -203,7 +202,7 @@ The default template is defined [here](https://github.com/mikestead/swagger-rout
 ```javascript
 import swaggerRoutes from 'swagger-routes'
 
-addRoutes(app, {
+swaggerRoutes(app, {
     api: './api.yml',
     authorizers: createAuthorizer
 })
@@ -211,13 +210,13 @@ addRoutes(app, {
 function createAuthorizer(schemeId, securityScheme) {
     return function authorizer(req, res, next) {
         const token = decodeToken(req.headers.authorization)
-        if (!token) {
+        if (token) {
+            const scopes = getTokenScopes(token)
+            next(req.verifyScopes(scopes))
+        } else {
             const error = new Error('Invalid access token')
             error.status = error.statusCode = 401
             next(error)
-        } else {
-            const scopes = getTokenScopes(token)
-            next(req.verifyScopes(scopes))
         }
     }
 }
