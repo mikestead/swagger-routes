@@ -3,6 +3,7 @@
 const path = require('path')
 const security = require('./routeSecurity')
 const routeBuilder = require('./routeBuilder')
+const assert = require('assert')
 
 exports.registerRoutes = registerRoutes
 
@@ -17,12 +18,12 @@ function registerOperationRoutes(app, operations, options) {
 	operations.forEach(operation => {
 		const opPath = operation.fullPath.replace(/{([^}]+)}/g, ':$1')
 		const stack = routeBuilder.buildHandlerStack(operation, authorizers, options)
-		if (stack.length) getMethod(app, operation).apply(app, [ opPath ].concat(stack))
-		else throw new Error(`Missing operation handler for '${operation.id}'`)
+		assert.ok(stack.length > 0, `Missing operation handler for '${operation.id}'`)
+		getHttpMethod(app, operation).apply(app, [ opPath ].concat(stack))
 	})
 }
 
-function getMethod(app, operation) {
+function getHttpMethod(app, operation) {
 	const method = operation.method
 	let func = app[method]
 	if (func) return func

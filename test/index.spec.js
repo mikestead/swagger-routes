@@ -104,13 +104,41 @@ describe('index', () => {
 					addHandlers(app, options2)
 					verifyRoute(app, '/pets', [ 'authorize', 'middleware', 'validator', 'handler' ])
 				})
+
+				it('should support registering multiple Swagger api specs', () => {
+					const api2 = Object.assign({}, api, { basePath: '/v2' })
+					const options2 = Object.assign({}, options, { api: api2 })
+
+					addHandlers(app, options)
+					addHandlers(app, options2)
+
+					verifyAppStackSize(app, 4)
+
+					verifyRoute(app, '/pets', [ 'validator', 'handler' ], api.basePath)
+					verifyRoute(app, options.docsPath, [ 'handler' ], api.basePath)
+
+					verifyRoute(app, '/pets', [ 'validator', 'handler' ], api2.basePath)
+					verifyRoute(app, options.docsPath, [ 'handler' ], api2.basePath)
+				})
+
+				it('should expose swagger apis via app/server property', () => {
+					const api2 = Object.assign({}, api, { basePath: '/v2' })
+					const options2 = Object.assign({}, options, { api: api2 })
+
+					addHandlers(app, options)
+					addHandlers(app, options2)
+
+					expect(app.swagger).toExist()
+					expect(app.swagger.size).toBe(2)
+				})
 			})
 		})
 	})
 })
 
-function verifyExpressRoute(app, path, stackNames) {
-	path = `${api.basePath}${path}`
+function verifyExpressRoute(app, path, stackNames, basePath) {
+	basePath = basePath || api.basePath
+	path = `${basePath}${path}`
 	const layer = app._router.stack.find(layer => layer.route ? layer.route.path === path : false)
 	const route = layer ? layer.route : null
 	expect(route).toExist()
@@ -118,8 +146,9 @@ function verifyExpressRoute(app, path, stackNames) {
 	verifyRouteStack(route.stack, stackNames)
 }
 
-function verifyRestifyRoute(app, path, stackNames) {
-	path = `${api.basePath}${path}`
+function verifyRestifyRoute(app, path, stackNames, basePath) {
+	basePath = basePath || api.basePath
+	path = `${basePath}${path}`
 	const method = path.endsWith('/api-docs') ? 'get' : 'post'
 	const name = `${method}${path.replace(/[ -\/]/g, '')}`
 	const route = app.router.mounts[name]

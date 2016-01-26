@@ -3,25 +3,69 @@
 [![Build Status](https://travis-ci.org/mikestead/swagger-routes.svg?branch=master)](https://travis-ci.org/mikestead/swagger-routes) [![npm version](https://img.shields.io/npm/v/swagger-routes.svg?style=flat-square)](https://www.npmjs.com/package/swagger-routes)
 
 A tool to generate and register [Restify](http://restify.com) or [Express](http://expressjs.com) route handlers from a 
-[Swagger](http://swagger.io) ([OpenAPI](https://openapis.org)) specification.
+[Swagger 2.0](http://swagger.io) ([OpenAPI](https://openapis.org)) specification.
 
 ### Usage
 
-```javascript
-import swaggerRoutes from 'swagger-routes'
+**Requires Node v4.0+.**
 
-swaggerRoutes(app, {    // express app or restify server
+#### Express
+
+```javascript
+const swaggerRoutes = require('swagger-routes')
+const express = require('express')
+const app = express()
+
+swaggerRoutes(app, {
     api: './api.yml',
     handlers:  './src/handlers',
     authorizers: './src/handlers/security'
 })
+
+app.listen(8080)
 ```
+
+#### Restify
+
+```javascript
+const swaggerRoutes = require('swagger-routes')
+const restify = require('restify')
+const server = restify.createServer()
+
+swaggerRoutes(server, {
+    api: './api.yml',
+    handlers:  './src/handlers',
+    authorizers: './src/handlers/security'
+})
+
+server.listen(8080)
+```
+
 ##### Options
 
 - `api`: path to your Swagger spec, or the loaded spec reference.
 - `docsPath`: url path to serve your swagger api json. Defaults to `/api-docs`.
 - `handlers`: directory where your handler files reside. Defaults to `./handlers`. Can alternatively be a function to return a handler function given an operation.
 - `authorizers`: directory where your authorizer files reside. Defaults to `./security`. Can alternatively be a function to return an authorizer middleware given a swagger security scheme.
+
+##### Setting Host
+
+Statically setting the `host` property of your Swagger api can be error prone if you run the api 
+in different environments (QA, Staging, Production), that's why I'd recommended removing its
+definition from your specification. This will by default then 
+[resolve to the host](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#swagger-object), including port, the spec 
+is served from.
+
+If this still isn't sufficient you have a couple of other options.
+ 
+1. Set `API_HOST` environment variable for your node instance. SwaggerRoutes will pick this up and use it.
+1. Set the `app.swagger.host` manually from within your app after you've called `swaggerRoutes`.
+
+```javascript
+server.listen(3000, '0.0.0.0', () => {
+    server.swagger.host = `${server.address().address}:${server.address().port}`
+})
+```
 
 ### Operation Handlers
 
@@ -180,7 +224,7 @@ Remember if no credentials are supplied a `401 Unauthorized` should be returned.
 
 ##### Generating Handler Files
 
-Much like hanlder files, authorizer file stubs will be generated and managed for you too.
+Much like handler files, authorizer file stubs will be generated and managed for you too.
 
 The default template is defined [here](https://github.com/mikestead/swagger-routes/blob/master/template/authorizer.mustache) but you can supply your own by expanding the `authorizers` option e.g.
 
@@ -228,12 +272,36 @@ Each incoming request which makes it to a handler will be run through request va
 
 ## Route Stack Execution Order
 
-1. `custom middleware` If the route defines one or more middleware these will be executed in order.
 1. `authorizer middleware` If there are security restrictions on a route then an authorizer for each will need to verify the rights attached to the request.
+1. `custom middleware` If the route defines one or more middleware these will be executed in order.
 1. `validation middleware` The incoming request will now be validated against the Swagger spec for the given operation.
 1. `handler` Assuming all previous steps pass, the handler is now executed.
 
-### Operation Object
+## Advanced Usage
+
+### Registering Multiple Swagger Apis
+
+You may be in the situation where you have a Swagger definition for each major version of your api.
+If this is the case, and you want to handle each on the same server, then you are free to register
+more than one spec.
+
+```javascript
+swaggerRoutes(server, {
+    api: './api-v1.yml',
+    handlers:  './src/handlers/v1',
+    authorizers: './src/handlers/v1/security'
+})
+
+swaggerRoutes(server, {
+    api: './api-v2.yml',
+    handlers:  './src/handlers/v2',
+    authorizers: './src/handlers/v2/security'
+})
+```
+You'll need to ensure that there's no conflict in route paths between each. The best
+way to do that would be to add a unique `basePath` to each spec, say `/v1`, `/v2` etc.
+
+## Operation Object
 
 An operation object inherits its properties from those defined in the [Swagger spec](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#operationObject).
 
@@ -245,3 +313,15 @@ There are only a few differences / additions.
 - `consumes`: Populated with the top level `consumes` unless the operation defines its own.
 - `produces`: Populated with the top level `produces` unless the operation defines its own.
 - `paramGroupSchemas`: JSON Schema for each param group ('header', 'path', 'query', 'body', 'formData') relevant to the operation.
+
+## Acknowledgments
+
+Inspiration for this library came primarily from time spent using [swaggerize-express](https://github.com/krakenjs/swaggerize-express).
+It's a great library which you should check out.
+
+My reasoning behind writing a new, alternate implementation was the wish to base all
+routing off operation ids and not paths. This aligns with how Swagger client code gen
+works, making it easier to see your client SDKs and server code base as a whole.
+
+I also wanted to automate away much of the boilerplate code being written and support
+Restify and Express in a single library, given their similarities.
