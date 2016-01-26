@@ -7,7 +7,7 @@ A tool to generate and register [Restify](http://restify.com) or [Express](http:
 
 ### Usage
 
-**Requires Node v4.0+.**
+Requires Node v4.0+
 
 #### Express
 
@@ -48,24 +48,6 @@ server.listen(8080)
 - `handlers`: directory where your handler files reside. Defaults to `./handlers`. Can alternatively be a function to return a handler function given an operation.
 - `authorizers`: directory where your authorizer files reside. Defaults to `./security`. Can alternatively be a function to return an authorizer middleware given a swagger security scheme.
 
-##### Setting Host
-
-Statically setting the `host` property of your Swagger api can be error prone if you run the api 
-in different environments (QA, Staging, Production), that's why I'd recommended removing its
-definition from your specification. This will by default then 
-[resolve to the host](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#swagger-object), including port, the spec 
-is served from.
-
-If this still isn't sufficient you have a couple of other options.
- 
-1. Set `API_HOST` environment variable for your node instance. SwaggerRoutes will pick this up and use it.
-1. Set the `app.swagger.host` manually from within your app after you've called `swaggerRoutes`.
-
-```javascript
-server.listen(3000, '0.0.0.0', () => {
-    server.swagger.host = `${server.address().address}:${server.address().port}`
-})
-```
 
 ### Operation Handlers
 
@@ -84,14 +66,14 @@ handler files must reside in the same directory.
 A function called `handler` should be exported to deal with an incoming operation request.
 
 ```javascript
-export function handler(req, res) {
-   
+exports.handler = function listPets(req, res) {
+
 }
 ```
 You also have the option to export a `middleware` function to be executed before the handler.
 
 ```javascript
-export const middleware = preprocess
+exports.middleware = preprocess
 
 function preprocess(req, res, next) {
     next()
@@ -100,7 +82,7 @@ function preprocess(req, res, next) {
 Middleware can be an ordered list.
 
 ```javascript
-export const middleware = [
+exports.middleware = [
     function preprocess1(req, res, next) { next() },
     function preprocess2(req, res, next) { next() }
 ]
@@ -149,7 +131,7 @@ processing onto service classes.
 You can define `handlers` as a function when registering your routes. It receives a Swagger [operation](#operation-object) and returns the request handler responsible for dealing with it.
 
 ```javascript
-import swaggerRoutes from 'swagger-routes'
+const swaggerRoutes = require('swagger-routes')
 
 swaggerRoutes(app, {
     api: './api.yml',
@@ -194,16 +176,19 @@ function createHandler(operation) {
 
 ### Authorizers
 
-When your Swagger api specifies one or more OAuth2 [security schemes](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#implicit-oauth2-sample) then routes which opt into one or more of these schemes can be pretected by an authorizer middleware.
+When your Swagger api specifies one or more 
+[security schemes](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#implicit-oauth2-sample) 
+then routes which opt into one or more of these schemes can be protected by authorizer middleware.
 
 Just like handlers, you can define an authorizer in a file or via a factory.
 
 #### File Authorizer
 
-The file should be named after the security scheme and reside in the directory path defined by the `authorizers` option. It should export a single middleware function to authorize a request.
+The file should be named after the security scheme it protects and reside in the directory path defined 
+by the `authorizers` option. It should export a single middleware function to authorize a request.
 
 ```javascript
-export default function petstore_auth(req, res, next) {
+module.exports = function petstore_auth(req, res, next) {
     const token = decodeToken(req.headers.authorization)
     if (token) {
         const scopes = getTokenScopes(token)
@@ -218,15 +203,19 @@ export default function petstore_auth(req, res, next) {
 
 The above is one example of how this can work.
 
-As you can see a `verifyScopes` function is supplied to the req. It takes an array of scopes you decode from the authenticated request and verifies that the required scope(s) are present. If they're not a `403 Forbidden` [error](https://en.wikipedia.org/wiki/HTTP_403#Difference_from_status_.22401_Unauthorized.22) is returned.
+As you can see a `verifyScopes` function is supplied to the req if the security scheme is OAuth2.
+It takes an array of scopes you decode from the authenticated request and verifies that the 
+required scope(s) defined be the scheme are present. If they're not a `403 Forbidden` 
+[error](https://en.wikipedia.org/wiki/HTTP_403#Difference_from_status_.22401_Unauthorized.22) is returned.
 
 Remember if no credentials are supplied a `401 Unauthorized` should be returned.
 
-##### Generating Handler Files
+##### Generating Authorizer Files
 
 Much like handler files, authorizer file stubs will be generated and managed for you too.
 
-The default template is defined [here](https://github.com/mikestead/swagger-routes/blob/master/template/authorizer.mustache) but you can supply your own by expanding the `authorizers` option e.g.
+The default template is defined [here](https://github.com/mikestead/swagger-routes/blob/master/template/authorizer.mustache) 
+but you can supply your own by expanding the `authorizers` option e.g.
 
 ```javascript
 {
@@ -244,7 +233,7 @@ The default template is defined [here](https://github.com/mikestead/swagger-rout
 #### Authorizer Factory
 
 ```javascript
-import swaggerRoutes from 'swagger-routes'
+const swaggerRoutes = require('swagger-routes')
 
 swaggerRoutes(app, {
     api: './api.yml',
@@ -268,7 +257,30 @@ function createAuthorizer(schemeId, securityScheme) {
 
 ### Request Validation
 
-Each incoming request which makes it to a handler will be run through request validation middleware. This executes [JSON Schema](http://json-schema.org) validation on the request to ensure it meets the Swagger specification you've defined. A failure to meet this requirement will cause the request to fail and the handler not to be executed.
+Each incoming request which makes it to a handler will be run through request validation middleware. 
+This executes [JSON Schema](http://json-schema.org) validation on the request to ensure it meets 
+the Swagger specification you've defined. A failure to meet this requirement will cause the request 
+to fail and the handler not to be executed.
+
+
+### Defining Api Host
+
+Statically setting the `host` property of your Swagger api can be error prone if you run the api 
+in different environments (QA, Staging, Production), that's why I'd recommended removing its
+definition from your specification. This will by default then 
+[resolve to the host](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#swagger-object), including port, the spec 
+is served from.
+
+If this still isn't sufficient you have a couple of other options.
+ 
+1. Set `API_HOST` environment variable for your node instance. SwaggerRoutes will pick this up and use it.
+1. Set the `app.swagger.host` manually from within your app after you've called `swaggerRoutes`.
+
+```javascript
+server.listen(3000, '0.0.0.0', () => {
+    server.swagger.host = `${server.address().address}:${server.address().port}`
+})
+```
 
 ## Route Stack Execution Order
 
