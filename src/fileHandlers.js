@@ -1,7 +1,5 @@
 'use strict'
 
-const path = require('path')
-const fs = require('fs')
 const swaggerSpec = require('./swaggerSpec')
 const fileUtil = require('./fileUtil')
 
@@ -19,21 +17,7 @@ function disableHandler(operation, options) {
 }
 
 function disableOldHandlers(operations, options) {
-	if (!options.handlers.generate || options.handlers.create) return []
-
-	const filenames = fs.readdirSync(options.handlers.path)
-	const unknown = filenames.filter(name =>
-		name.endsWith('.js') &&
-		!name.startsWith(options.unusedFilePrefix) &&
-		!operations.find(op => `${op.id}.js` === name))
-
-	return unknown.map(name => {
-		name = path.basename(name, '.js')
-		const filePath = fileUtil.getFilePath(name, 'handlers', options)
-		const disabledPath = fileUtil.getDisabledFilePath(name, 'handlers', options)
-		fs.renameSync(filePath, disabledPath)
-		return fileUtil.fileInfo(disabledPath, false, true)
-	})
+	return fileUtil.disableOldOperationFiles(operations, 'handlers', options)
 }
 
 function getTemplateView(operation) {

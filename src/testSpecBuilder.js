@@ -1,5 +1,9 @@
 'use strict'
 
+const Options = require('./options')
+const fileUtil = require('./fileUtil')
+const util = require('./util')
+const fs = require('fs')
 const assert = require('assert')
 const jsonSchema = require('jsonschema')
 const url = require('url')
@@ -25,8 +29,7 @@ exports.buildSpecs = buildSpecs
  * @return {void}
  */
 function buildSpecs(options) {
-	options = Object.assign({}, options)
-	if (!options.getOperationTests) options.getOperationTests = () => {}
+	options = Options.applyDefaultSpecOptions(options)
 
 	const api = swaggerSpec.getSpecSync(options.api)
 	const operations = swaggerSpec.getAllOperations(api)
@@ -35,10 +38,14 @@ function buildSpecs(options) {
 		this.timeout(options.maxTimeout || 10000)
 
 		before(done => options.startServer(done))
-		after(done => options.stopServer(done))
+		after(done => {
+			fileUtil.disableOldOperationFiles(operations, 'specs', options)
+			options.stopServer(done)
+		})
 
 		operations.forEach(op => {
-			const tests = options.getOperationTests(op) || op['x-tests'] || {}
+			const tests = getSpecs(op, options)
+			//const tests = options.getOperationTests(op) || op['x-tests'] || {}
 			const desc = `${op.method.toUpperCase()}: ${op.path} (${op.id})`
 			describe(desc, () => {
 				Object.keys(tests).forEach(description => {
@@ -50,12 +57,33 @@ function buildSpecs(options) {
 						if (isValidRequestExpected(test)) {
 							validateRequest(req, test, op)
 						}
-						request(req).then(res => validateResponse(res, test, op))
+						return request(req)
+							.then(res => validateResponse(res, test, op),
+								res => validateResponse(res, test, op))
 					})
 				})
 			})
 		})
 	})
+}
+
+function getSpecs(op, options) {
+	let specs
+	if (typeof options.specs.create === 'function') specs = options.tests.create(op)
+	if (!specs) specs = op['x-specs']
+	if (specs) disableSpecsFile(op, options)
+	else specs = requireSpecsFile(op, options)
+	return specs || {}
+}
+
+function disableSpecsFile(op, options) {
+	return fileUtil.disableFile(op.id, 'specs', options)
+}
+
+function requireSpecsFile(op, options) {
+	const fileInfo = fileUtil.enableFile(op.id, op, 'specs', options)
+	try { return util.parseFileContents(fs.readFileSync(fileInfo.path), fileInfo.path) }
+	catch(e) { return {} }
 }
 
 function createRequest(op, testReqData, options) {
@@ -72,7 +100,7 @@ function createRequest(op, testReqData, options) {
 			pathname
 		}),
 		method: op.method,
-		headers: testReqData.header,
+		headers: testReqData.header || {},
 		params: testReqData.query,
 		data: testReqData.body
 	}
@@ -114,7 +142,7 @@ function validateBody(res, bodySchema) {
 }
 
 function validateContentType(res, op) {
-	const contentType = res.headers.get('content-type')
+	const contentType = res.headers['content-type']
 	assert.notEqual(op.produces.indexOf(contentType), -1, `Response content type '${contentType}' was not expected`)
 }
 

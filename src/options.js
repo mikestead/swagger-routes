@@ -29,9 +29,22 @@ const DEFAULT_OPTIONS = {
 	unusedFilePrefix: '_'
 }
 
+const DEFAULT_SPEC_OPTIONS = {
+	specs: {
+		path: './tests/api',
+		template: path.join(__dirname, '..', 'template', 'spec.mustache'),
+		generate: true,
+		startServer: done => done(),
+		stopServer: done => done()
+	},
+	fileType: '.spec.yml',
+	unusedFilePrefix: '_'
+}
+
 exports.DEFAULT_OPTIONS = DEFAULT_OPTIONS
 exports.DEFAULT_EXPRESS_OPTIONS = DEFAULT_EXPRESS_OPTIONS
 exports.applyDefaultOptions = applyDefaultOptions
+exports.applyDefaultSpecOptions = applyDefaultSpecOptions
 exports.applyDefaultAppOptions = applyDefaultAppOptions
 
 function applyDefaultOptions(options, extra) {
@@ -61,6 +74,14 @@ function applyTemplateOptions(type, fileModule, options) {
 			options[type].getTemplateView = fileModule.getTemplateView
 		}
 	}
+	return options
+}
+
+function applyDefaultSpecOptions(options) {
+	const specs = expandFlattenedOption('specs', options)
+	options = Object.assign({}, DEFAULT_SPEC_OPTIONS, options)
+	options.specs = Object.assign({}, DEFAULT_SPEC_OPTIONS.specs, specs)
+	options = applyTemplateOptions('specs', fileHandlers, options)
 	return options
 }
 

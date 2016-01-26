@@ -1,7 +1,9 @@
 'use strict'
 
 const fs = require('fs')
+const path = require('path')
 const mkdirp = require('mkdirp')
+const yaml = require('js-yaml')
 const dirname = require('path').dirname
 
 exports.exists = exists
@@ -12,43 +14,44 @@ exports.writeFile = writeFile
 exports.writeFileSync = writeFileSync
 exports.renameFile = renameFile
 exports.readDir = readDir
+exports.parseFileContents = parseFileContents
 
-function exists(path) {
+function exists(filePath) {
 	return new Promise((res, rej) =>
-		fs.lstat(path, (err, stats) =>
+		fs.lstat(filePath, (err, stats) =>
 			err ? rej(err) : res(stats)))
 }
 
-function existsSync(path) {
+function existsSync(filePath) {
 	try {
-		return fs.lstatSync(path)
+		return fs.lstatSync(filePath)
 	} catch (e) {
 		return false
 	}
 }
 
-function mkdir(path) {
+function mkdir(dirPath) {
 	return new Promise((res, rej) =>
-		mkdirp(path, err =>
+		mkdirp(dirPath, err =>
 			err && err.code !== 'EEXIST' ? rej(err) : res()))
 }
 
-function readFile(path) {
+function readFile(filePath) {
 	return new Promise((res, rej) =>
-		fs.readFile(path, 'utf8', (err, contents) =>
+		fs.readFile(filePath, 'utf8', (err, contents) =>
 			err ? rej(err) : res(contents)))
 }
 
-function writeFile(path, contents) {
+function writeFile(filePath, contents) {
 	return new Promise((res, rej) =>
-		mkdir(dirname(path)).then(() =>
-			fs.writeFile(path, contents, err =>
+		mkdir(dirname(filePath)).then(() =>
+			fs.writeFile(filePath, contents, err =>
 				err ? rej(err) : res())))
 }
 
-function writeFileSync(path, contents) {
-	mkdirp.sync(dirname(path))
-	fs.writeFileSync(path, contents)
+function writeFileSync(filePath, contents) {
+	mkdirp.sync(dirname(filePath))
+	fs.writeFileSync(filePath, contents)
 }
 
 function renameFile(oldPath, newPath) {
@@ -57,8 +60,18 @@ function renameFile(oldPath, newPath) {
 			err ? rej(err) : res()))
 }
 
-function readDir(path) {
+function readDir(dirPath) {
 	return new Promise((res, rej) =>
-		fs.readdir(path, (err, files) =>
+		fs.readdir(dirPath, (err, files) =>
 			err ? rej(err) : res(files)))
+}
+
+function parseFileContents(contents, path) {
+	return isYamlFile(path) ?
+		yaml.safeLoad(contents) :
+		JSON.parse(contents)
+}
+
+function isYamlFile(filePath) {
+	return path.extname(filePath).match(/^\.ya?ml$/)
 }

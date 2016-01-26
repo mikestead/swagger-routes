@@ -2,7 +2,6 @@
 
 const fs = require('fs')
 const path = require('path')
-const yaml = require('js-yaml')
 const util = require('./util')
 const assert = require('assert')
 
@@ -52,22 +51,12 @@ function getSpecSync(spec) {
 
 function loadSpec(specPath) {
 	return util.readFile(specPath)
-		.then(contents => parseSpec(contents, specPath))
+		.then(contents => util.parseFileContents(contents, specPath))
 }
 
 function loadSpecSync(specPath) {
 	const contents = fs.readFileSync(specPath)
-	return parseSpec(contents, specPath)
-}
-
-function parseSpec(contents, path) {
-	return isYamlFile(path) ?
-		yaml.safeLoad(contents) :
-		JSON.parse(contents)
-}
-
-function isYamlFile(filePath) {
-	return path.extname(filePath).match(/^\.ya?ml$/)
+	return util.parseFileContents(contents, specPath)
 }
 
 function applyDefaults(spec) {
