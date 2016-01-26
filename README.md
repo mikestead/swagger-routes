@@ -21,7 +21,6 @@ swaggerRoutes(app, {
     handlers:  './src/handlers',
     authorizers: './src/handlers/security'
 })
-
 app.listen(8080)
 ```
 
@@ -37,7 +36,6 @@ swaggerRoutes(server, {
     handlers:  './src/handlers',
     authorizers: './src/handlers/security'
 })
-
 server.listen(8080)
 ```
 
@@ -47,7 +45,6 @@ server.listen(8080)
 - `docsPath`: url path to serve your swagger api json. Defaults to `/api-docs`.
 - `handlers`: directory where your handler files reside. Defaults to `./handlers`. Can alternatively be a function to return a handler function given an operation.
 - `authorizers`: directory where your authorizer files reside. Defaults to `./security`. Can alternatively be a function to return an authorizer middleware given a swagger security scheme.
-
 
 ### Operation Handlers
 
@@ -66,7 +63,7 @@ handler files must reside in the same directory.
 A function called `handler` should be exported to deal with an incoming operation request.
 
 ```javascript
-exports.handler = function listPets(req, res) {
+exports.handler = function listPets(req, res, next) {
 
 }
 ```
@@ -155,7 +152,7 @@ Just as a file handler can define route middleware, so can `createHandler`.
 function createHandler(operation) {
     return {
         middleware: function preprocess(req, res, next) { next() },
-        handler: function handler(req, res) { res.send(operation.id) }
+        handler: function handler(req, res, next) { res.send(operation.id) }
     }
 }
 ```
@@ -169,7 +166,7 @@ function createHandler(operation) {
             function preprocess1(req, res, next) { next() },
             function preprocess2(req, res, next) { next() }
         ],
-        handler: function handler(req, res) { res.send(operation.id) }
+        handler: function handler(req, res, next) { res.send(operation.id) }
     }
 }
 ```
@@ -184,8 +181,7 @@ Just like handlers, you can define an authorizer in a file or via a factory.
 
 #### File Authorizer
 
-The file should be named after the security scheme it protects and reside in the directory path defined 
-by the `authorizers` option. It should export a single middleware function to authorize a request.
+The file should be named after the security scheme it protects e.g. `petstore_auth.js`, and reside in the directory path defined by the `authorizers` option. It should export a single middleware function to authorize a request.
 
 ```javascript
 module.exports = function petstore_auth(req, res, next) {
@@ -262,8 +258,7 @@ This executes [JSON Schema](http://json-schema.org) validation on the request to
 the Swagger specification you've defined. A failure to meet this requirement will cause the request 
 to fail and the handler not to be executed.
 
-
-### Defining Api Host
+### Swagger Host
 
 Statically setting the `host` property of your Swagger api can be error prone if you run the api 
 in different environments (QA, Staging, Production), that's why I'd recommended removing its
@@ -277,8 +272,8 @@ If this still isn't sufficient you have a couple of other options.
 1. Set the `app.swagger.host` manually from within your app after you've called `swaggerRoutes`.
 
 ```javascript
-server.listen(3000, '0.0.0.0', () => {
-    server.swagger.host = `${server.address().address}:${server.address().port}`
+const server = app.listen(3000, '0.0.0.0', () => {
+    app.swagger.host = `${server.address().address}:${server.address().port}`
 })
 ```
 
