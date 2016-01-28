@@ -92,11 +92,11 @@ function requireSpecsFile(op, options) {
 
 function getSpecInfo(id) {
 	if (id.startsWith(ONLY_SPEC_MARKER)) {
-		return { it: it.only, summary: summary.substr(ONLY_SPEC_MARKER.length).trim(), verbose: false}
+		return { it: it.only, summary: id.substr(ONLY_SPEC_MARKER.length).trim(), verbose: false }
 	} else if (id.startsWith(ONLY_VERBOSE_SPEC_MARKER)) {
-		return { it: it.only, summary: summary.substr(ONLY_VERBOSE_SPEC_MARKER.length).trim(), verbose: true}
+		return { it: it.only, summary: id.substr(ONLY_VERBOSE_SPEC_MARKER.length).trim(), verbose: true }
 	} else {
-		return { it, summary: summary.trim(), verbose: false }
+		return { it, summary: id.trim(), verbose: false }
 	}
 }
 
@@ -121,12 +121,11 @@ function createRequest(op, testReqData, options) {
 }
 
 function validateRequest(req, spec, op, verbose) {
-	if (verbose) console.log(req)
 	const groupSchema = op.paramGroupSchemas
 	swaggerSpec.PARAM_GROUPS.forEach(groupId => {
 		if (groupSchema[groupId]) {
 			try {
-				jsonSchema.validate(spec.request[groupId], groupSchema[groupId], {throwError: true})
+				jsonSchema.validate(spec.request[groupId], groupSchema[groupId], { throwError: true })
 			} catch(e) {
 				if (verbose) e.message = `${e.toString()}\Request: ${JSON.stringify(req, null, 2)}`
 				throw e
