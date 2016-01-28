@@ -10,11 +10,13 @@ const url = require('url')
 const request = require('axios')
 const swaggerSpec = require('./swaggerSpec')
 
+const ONLY_SPEC_MARKER = '+'
+const ONLY_VERBOSE_SPEC_MARKER = 'v+'
+
 exports.buildMochaSpecs = buildMochaSpecs
 
 /**
- * Generates a suite of test specifications in the jasmine / mocha style for
- * each of your Swagger api operations.
+ * Generates a suite of Mocha test specifications for each of your Swagger api operations.
  *
  * Both request and response of an operation call are validated for conformity
  * with your Swagger document.
@@ -22,8 +24,9 @@ exports.buildMochaSpecs = buildMochaSpecs
  * @param {object} options
  *  - `api` path to your Swagger spec, or the loaded spec reference.
  *  - `host` server host + port where your tests will run e.g. `localhost:3453`
- *  - `getOperationTests(op)` function to return the set of tests for an operation. Falls back to operation['x-tests'].
+ *  - `specs` path to specs dir, or function to return the set of specs for an operation.
  *  - `maxTimeout` maximum time a test can take to complete
+ *  - `slowTime` time taken before a test is marked slow. Defaults to 1 second.
  *  - `startServer(done)` function called before all tests where you can start your local server
  *  - `stopServer(done)`function called after all tests where you can stop your local server
  * @return {void}
@@ -45,22 +48,22 @@ function buildMochaSpecs(options) {
 		})
 
 		operations.forEach(op => {
-			const tests = getSpecs(op, options)
-			const desc = `${op.method.toUpperCase()}: ${op.path} (${op.id})`
-			describe(desc, () => {
-				Object.keys(tests).forEach(summary => {
-					const func = summary.startsWith('!') ? it.only : it
-					func(summary, () => {
-						const test = tests[summary]
-						const req = createRequest(op, test.request, options)
+			const specs = getSpecs(op, options)
+			const description = `${op.method.toUpperCase()}: ${op.path} (${op.id})`
+			describe(description, () => {
+				Object.keys(specs).forEach(id => {
+					const specInfo = getSpecInfo(id)
+					specInfo.it(specInfo.summary, () => {
+						const spec = specs[id]
+						const req = createRequest(op, spec.request, options)
 						// if the expected outcome of the test is a positive response
 						// then the request can be validated for correct format
-						if (isValidRequestExpected(test)) {
-							validateRequest(req, test, op)
+						if (isValidRequestExpected(spec)) {
+							validateRequest(req, spec, op, specInfo.verbose)
 						}
 						return request(req)
-							.then(res => validateResponse(res, test, op),
-								res => validateResponse(res, test, op))
+							.then(res => validateResponse(res, spec, op, specInfo.verbose),
+								res => validateResponse(res, spec, op, specInfo.verbose))
 					})
 				})
 			})
@@ -70,7 +73,7 @@ function buildMochaSpecs(options) {
 
 function getSpecs(op, options) {
 	let specs
-	if (typeof options.specs.create === 'function') specs = options.tests.create(op)
+	if (typeof options.specs.create === 'function') specs = options.specs.create(op)
 	if (!specs) specs = op['x-specs']
 	if (specs) disableSpecsFile(op, options)
 	else specs = requireSpecsFile(op, options)
@@ -85,6 +88,16 @@ function requireSpecsFile(op, options) {
 	const fileInfo = fileUtil.enableFile(op.id, op, 'specs', options)
 	try { return util.parseFileContents(fs.readFileSync(fileInfo.path), fileInfo.path) }
 	catch(e) { return {} }
+}
+
+function getSpecInfo(id) {
+	if (id.startsWith(ONLY_SPEC_MARKER)) {
+		return { it: it.only, summary: summary.substr(ONLY_SPEC_MARKER.length).trim(), verbose: false}
+	} else if (id.startsWith(ONLY_VERBOSE_SPEC_MARKER)) {
+		return { it: it.only, summary: summary.substr(ONLY_VERBOSE_SPEC_MARKER.length).trim(), verbose: true}
+	} else {
+		return { it, summary: summary.trim(), verbose: false }
+	}
 }
 
 function createRequest(op, testReqData, options) {
@@ -107,21 +120,32 @@ function createRequest(op, testReqData, options) {
 	}
 }
 
-function validateRequest(req, test, op) {
+function validateRequest(req, spec, op, verbose) {
+	if (verbose) console.log(req)
 	const groupSchema = op.paramGroupSchemas
 	swaggerSpec.PARAM_GROUPS.forEach(groupId => {
 		if (groupSchema[groupId]) {
-			jsonSchema.validate(test.request[groupId], groupSchema[groupId], { throwError: true })
+			try {
+				jsonSchema.validate(spec.request[groupId], groupSchema[groupId], {throwError: true})
+			} catch(e) {
+				if (verbose) e.message = `${e.toString()}\Request: ${JSON.stringify(req, null, 2)}`
+				throw e
+			}
 		}
 	})
 }
 
-function validateResponse(res, test, op) {
-	const responseSchema = op.responseSchemas[test.response]
-	validateStatus(res, responseSchema.id)
-	validateHeaders(res, responseSchema.headersSchema)
-	validateBody(res, responseSchema.bodySchema)
-	validateContentType(res, op)
+function validateResponse(res, spec, op, verbose) {
+	const responseSchema = op.responseSchemas[spec.response]
+	try {
+		validateStatus(res, responseSchema.id)
+		validateHeaders(res, responseSchema.headersSchema)
+		validateBody(res, responseSchema.bodySchema)
+		validateContentType(res, op)
+	} catch (e) {
+		if (verbose) e.message = `${e.toString()}\nResponse: ${JSON.stringify(res, null, 2)}`
+		throw e
+	}
 }
 
 function validateStatus(res, id) {
@@ -147,8 +171,8 @@ function validateContentType(res, op) {
 	assert.notEqual(op.produces.indexOf(contentType), -1, `Response content type '${contentType}' was not expected`)
 }
 
-function isValidRequestExpected(test) {
-	return (test.request.valid || (hasSuccessStatus(test.response) && test.request.valid !== false))
+function isValidRequestExpected(spec) {
+	return (spec.request.valid || (hasSuccessStatus(spec.response) && spec.request.valid !== false))
 }
 
 function hasSuccessStatus(status) {
