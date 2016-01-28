@@ -10,7 +10,7 @@ const url = require('url')
 const request = require('axios')
 const swaggerSpec = require('./swaggerSpec')
 
-exports.buildSpecs = buildSpecs
+exports.buildMochaSpecs = buildMochaSpecs
 
 /**
  * Generates a suite of test specifications in the jasmine / mocha style for
@@ -28,13 +28,14 @@ exports.buildSpecs = buildSpecs
  *  - `stopServer(done)`function called after all tests where you can stop your local server
  * @return {void}
  */
-function buildSpecs(options) {
+function buildMochaSpecs(options) {
 	options = Options.applyDefaultSpecOptions(options)
 
 	const api = swaggerSpec.getSpecSync(options.api)
 	const operations = swaggerSpec.getAllOperations(api)
 
 	describe(api.info.title, function () {
+		if (this.slow) this.slow(options.slowTime || 1000)
 		this.timeout(options.maxTimeout || 10000)
 
 		before(done => options.startServer(done))
@@ -45,12 +46,12 @@ function buildSpecs(options) {
 
 		operations.forEach(op => {
 			const tests = getSpecs(op, options)
-			//const tests = options.getOperationTests(op) || op['x-tests'] || {}
 			const desc = `${op.method.toUpperCase()}: ${op.path} (${op.id})`
 			describe(desc, () => {
-				Object.keys(tests).forEach(description => {
-					it(description, () => {
-						const test = tests[description]
+				Object.keys(tests).forEach(summary => {
+					const func = summary.startsWith('!') ? it.only : it
+					func(summary, () => {
+						const test = tests[summary]
 						const req = createRequest(op, test.request, options)
 						// if the expected outcome of the test is a positive response
 						// then the request can be validated for correct format
