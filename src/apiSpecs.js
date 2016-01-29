@@ -13,13 +13,15 @@ const swaggerSpec = require('./swaggerSpec')
 const ONLY_SPEC_MARKER = '+'
 const ONLY_VERBOSE_SPEC_MARKER = 'v+'
 
-exports.buildMochaSpecs = buildMochaSpecs
+module.exports = apiSpecs
 
 /**
  * Generates a suite of Mocha test specifications for each of your Swagger api operations.
  *
  * Both request and response of an operation call are validated for conformity
  * with your Swagger document.
+ *
+ * You'll need to depend on and set up Mocha in your project yourself.
  *
  * @param {object} options
  *  - `api` path to your Swagger spec, or the loaded spec reference.
@@ -31,14 +33,16 @@ exports.buildMochaSpecs = buildMochaSpecs
  *  - `stopServer(done)`function called after all tests where you can stop your local server
  * @return {void}
  */
-function buildMochaSpecs(options) {
+function apiSpecs(options) {
 	options = Options.applyDefaultSpecOptions(options)
-
 	const api = swaggerSpec.getSpecSync(options.api)
 	const operations = swaggerSpec.getAllOperations(api)
+	describeApi(api, operations, options)
+}
 
+function describeApi(api, operations, options) {
 	describe(api.info.title, function () {
-		if (this.slow) this.slow(options.slowTime || 1000)
+		this.slow(options.slowTime || 1000)
 		this.timeout(options.maxTimeout || 10000)
 
 		before(done => options.startServer(done))
@@ -47,28 +51,57 @@ function buildMochaSpecs(options) {
 			options.stopServer(done)
 		})
 
-		operations.forEach(op => {
-			const specs = getSpecs(op, options)
-			const description = `${op.method.toUpperCase()}: ${op.path} (${op.id})`
-			describe(description, () => {
-				Object.keys(specs).forEach(id => {
-					const specInfo = getSpecInfo(id)
-					specInfo.it(specInfo.summary, () => {
-						const spec = specs[id]
-						const req = createRequest(op, spec.request, options)
-						// if the expected outcome of the test is a positive response
-						// then the request can be validated for correct format
-						if (isValidRequestExpected(spec)) {
-							validateRequest(req, spec, op, specInfo.verbose)
-						}
-						return request(req)
-							.then(res => validateResponse(res, spec, op, specInfo.verbose),
-								res => validateResponse(res, spec, op, specInfo.verbose))
-					})
-				})
-			})
+		describeOperations(operations, options)
+	})
+}
+
+function describeOperations(operations, options) {
+	operations.forEach(op => {
+		const description = `${op.method.toUpperCase()}: ${op.path} (${op.id})`
+		describe(description, () => {
+			describeOperationSpecs(op, operations, options)
 		})
 	})
+}
+
+function describeOperationSpecs(op, operations, options) {
+	const specs = getSpecs(op, options)
+	Object.keys(specs).forEach(id => {
+		const specInfo = getSpecInfo(id)
+		specInfo.it(specInfo.summary, () => {
+			const spec = specs[id]
+			const steps = Array.isArray(spec) ? spec : [spec]
+			return runSteps(steps, op, operations, options, specInfo.verbose)
+		})
+	})
+}
+
+function runSteps(steps, op, operations, options, verbose) {
+	return steps.reduce((prev, step) => {
+		return prev.then(acc => {
+			if (!step.request) step.request = {}
+			if (!step.response) step.response = {}
+			const stepOp = getStepOperation(step, operations, op)
+			return runStep(step, stepOp, options, verbose, acc)
+		})
+	}, Promise.resolve([]))
+}
+
+function getStepOperation(step, operations, primaryOp) {
+	return operations.find(opt => opt.id === step.request.operationId) || primaryOp
+}
+
+function runStep(step, op, options, verbose, acc) {
+	const req = createRequest(op, step.request, options, acc)
+	if (expectsValidRequest(step)) {
+		validateRequest(req, step, op, verbose)
+	}
+	return request(req)
+		.then(
+			res => validateResponse(req, res, step, op, verbose),
+			res => validateResponse(req, res, step, op, verbose)
+	)
+		.then(res => (acc || []).concat({ req, res }))
 }
 
 function getSpecs(op, options) {
@@ -100,7 +133,8 @@ function getSpecInfo(id) {
 	}
 }
 
-function createRequest(op, testReqData, options) {
+function createRequest(op, testReqData, options, acc) {
+	testReqData = populateProperties(testReqData, acc)
 	let pathname = op.fullPath
 	if (testReqData.path) {
 		pathname = Object.keys(testReqData.path)
@@ -120,6 +154,49 @@ function createRequest(op, testReqData, options) {
 	}
 }
 
+function populateProperties(source, acc) {
+	if (Array.isArray(source)) {
+		source.forEach((v, i) => source[i] = populateProperties(v, acc))
+	} else if (typeof source === 'object') {
+		Object.keys(source || {}).forEach(key => source[key] = populateProperties(source[key], acc))
+	} else if (typeof source === 'string') {
+		const stepAcc = { step: acc }
+		if (source.startsWith('step[')) {
+			return parseProperty(source.split('.'), stepAcc)
+		} else {
+			const tokenMatch = source.match(/\$\{(step\[\d+\][\w\[\d\]\.]+)\}/g)
+			if (tokenMatch) {
+				return tokenMatch.reduce((str, token) => {
+					const path = token.slice(2, -1)
+					const value = parseProperty(path.split('.'), stepAcc)
+					return str.split(token).join(value)
+				}, source)
+			}
+		}
+	}
+	return source
+}
+
+function parseProperty(segments, source) {
+	if (!segments.length || (typeof source !== 'object' && !Array.isArray(source))) {
+		return source
+	}
+	const segment = segments.shift()
+	const arrayMatch = segment.match(/([\w]*)\[(\d+)\]$/m)
+	if (arrayMatch) {
+		const name = arrayMatch[1]
+		const index = Number(arrayMatch[2])
+		const array = name ? source[name] : source
+
+		assert.ok(Array.isArray(array), `Expected array at ${segment}`)
+		assert.ok(index >= 0 && index < array.length, `Invalid step index '${index}', range [0-${array.length - 1}]`)
+
+		return parseProperty(segments, source[name][index])
+	} else {
+		return parseProperty(segments, source[segment])
+	}
+}
+
 function validateRequest(req, spec, op, verbose) {
 	const groupSchema = op.paramGroupSchemas
 	swaggerSpec.PARAM_GROUPS.forEach(groupId => {
@@ -134,7 +211,7 @@ function validateRequest(req, spec, op, verbose) {
 	})
 }
 
-function validateResponse(res, spec, op, verbose) {
+function validateResponse(req, res, spec, op, verbose) {
 	const responseSchema = op.responseSchemas[spec.response]
 	try {
 		validateStatus(res, responseSchema.id)
@@ -142,9 +219,10 @@ function validateResponse(res, spec, op, verbose) {
 		validateBody(res, responseSchema.bodySchema)
 		validateContentType(res, op)
 	} catch (e) {
-		if (verbose) e.message = `${e.toString()}\nResponse: ${JSON.stringify(res, null, 2)}`
+		if (verbose) e.message = `${e.toString()}\nRequest: ${JSON.stringify(req, null, 2)}\nResponse: ${JSON.stringify(res, null, 2)}`
 		throw e
 	}
+	return res
 }
 
 function validateStatus(res, id) {
@@ -170,8 +248,8 @@ function validateContentType(res, op) {
 	assert.notEqual(op.produces.indexOf(contentType), -1, `Response content type '${contentType}' was not expected`)
 }
 
-function isValidRequestExpected(spec) {
-	return (spec.request.valid || (hasSuccessStatus(spec.response) && spec.request.valid !== false))
+function expectsValidRequest(step) {
+	return (step.request.valid || (hasSuccessStatus(step.response) && step.request.valid !== false))
 }
 
 function hasSuccessStatus(status) {
