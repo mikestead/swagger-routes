@@ -3,6 +3,7 @@
 const fs = require('fs')
 const path = require('path')
 const mkdirp = require('mkdirp')
+const assert = require('assert')
 const yaml = require('js-yaml')
 const dirname = require('path').dirname
 
@@ -15,6 +16,7 @@ exports.writeFileSync = writeFileSync
 exports.renameFile = renameFile
 exports.readDir = readDir
 exports.parseFileContents = parseFileContents
+exports.resolveSchemaRefs = resolveSchemaRefs
 
 function exists(filePath) {
 	return new Promise((res, rej) =>
@@ -74,4 +76,46 @@ function parseFileContents(contents, path) {
 
 function isYamlFile(filePath) {
 	return path.extname(filePath).match(/^\.ya?ml$/)
+}
+
+const dataCache = new Set()
+
+/**
+ * Recursively resolves references in the form `#/path/to/object`.
+ *
+ * @param {object} data the object to search for and update refs
+ * @param {object} lookup the object to clone refs from
+ * @returns {*} the resolved data object
+ */
+function resolveSchemaRefs(data, lookup) {
+	if (!data || dataCache.has(data)) return data
+
+	if (Array.isArray(data)) {
+		return data.map(item => resolveSchemaRefs(item, lookup))
+	} else if (typeof data === 'object') {
+		if (data.$ref) {
+			const resolved = resolveSchemaRef(data.$ref, lookup)
+			delete data.$ref
+			data = Object.assign({}, resolved, data)
+		}
+		dataCache.add(data)
+
+		for (let name in data) {
+			data[name] = resolveSchemaRefs(data[name], lookup)
+		}
+	}
+	return data
+}
+
+function resolveSchemaRef(ref, lookup) {
+	const parts = ref.split('/')
+
+	assert.ok(parts.shift() === '#', `Only support JSON Schema $refs in format '#/path/to/ref'`)
+
+	let value = lookup
+	while (parts.length) {
+		value = value[parts.shift()]
+		assert.ok(value, `Invalid schema reference: ${ref}`)
+	}
+	return value
 }

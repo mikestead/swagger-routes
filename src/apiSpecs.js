@@ -4,6 +4,7 @@ const Options = require('./options')
 const fileUtil = require('./fileUtil')
 const util = require('./util')
 const fs = require('fs')
+const path = require('path')
 const assert = require('assert')
 const jsonSchema = require('jsonschema')
 const url = require('url')
@@ -37,12 +38,20 @@ function apiSpecs(options) {
 	options = Options.applyDefaultSpecOptions(options)
 	const api = swaggerSpec.getSpecSync(options.api)
 	const operations = swaggerSpec.getAllOperations(api)
+	options.fixtures = getFixtures(options)
 	describeApi(api, operations, options)
+}
+
+function getFixtures(options) {
+	const p = path.resolve(options.fixtures)
+	if (!options.fixtures || !util.existsSync(p)) return {}
+	const contents = fs.readFileSync(p, 'utf8')
+	return util.parseFileContents(contents, p)
 }
 
 function describeApi(api, operations, options) {
 	describe(api.info.title, function () {
-		this.slow(options.slowTime || 1000)
+		this.slow(options.slowTime || 2000)
 		this.timeout(options.maxTimeout || 10000)
 
 		before(done => options.startServer(done))
@@ -50,7 +59,6 @@ function describeApi(api, operations, options) {
 			fileUtil.disableOldOperationFiles(operations, 'specs', options)
 			options.stopServer(done)
 		})
-
 		describeOperations(operations, options)
 	})
 }
@@ -70,15 +78,17 @@ function describeOperationSpecs(op, operations, options) {
 		const specInfo = getSpecInfo(id)
 		specInfo.it(specInfo.summary, () => {
 			const spec = specs[id]
-			const steps = Array.isArray(spec) ? spec : [spec]
+			const steps = Array.isArray(spec) ? spec : [ spec ]
 			return runSteps(steps, op, operations, options, specInfo.verbose)
 		})
 	})
 }
 
 function runSteps(steps, op, operations, options, verbose) {
+	const fixtures = { fixtures: options.fixtures }
 	return steps.reduce((prev, step) => {
 		return prev.then(acc => {
+			step = util.resolveSchemaRefs(step, fixtures)
 			if (!step.request) step.request = {}
 			if (!step.response) step.response = {}
 			const stepOp = getStepOperation(step, operations, op)
@@ -100,7 +110,7 @@ function runStep(step, op, options, verbose, acc) {
 		.then(
 			res => validateResponse(req, res, step, op, verbose),
 			res => validateResponse(req, res, step, op, verbose)
-	)
+		)
 		.then(res => (acc || []).concat({ req, res }))
 }
 
@@ -119,8 +129,12 @@ function disableSpecsFile(op, options) {
 
 function requireSpecsFile(op, options) {
 	const fileInfo = fileUtil.enableFile(op.id, op, 'specs', options)
-	try { return util.parseFileContents(fs.readFileSync(fileInfo.path), fileInfo.path) }
-	catch(e) { return {} }
+	try {
+		return util.parseFileContents(fs.readFileSync(fileInfo.path), fileInfo.path)
+	} catch(e) {
+		if (e.name === 'YAMLException') throw e
+		return {}
+	}
 }
 
 function getSpecInfo(id) {
@@ -212,17 +226,29 @@ function validateRequest(req, spec, op, verbose) {
 }
 
 function validateResponse(req, res, spec, op, verbose) {
-	const responseSchema = op.responseSchemas[spec.response]
+	const responseSpec = getResponseSpec(spec)
+	const responseSchema = op.responseSchemas[responseSpec.status]
+
+	assert.ok(responseSchema, `No response schema found for response status '${responseSpec.status}'`)
+
 	try {
 		validateStatus(res, responseSchema.id)
-		validateHeaders(res, responseSchema.headersSchema)
-		validateBody(res, responseSchema.bodySchema)
+		validateHeaders(res, responseSchema.headersSchema, responseSpec)
+		validateBody(res, responseSchema.bodySchema, responseSpec)
 		validateContentType(res, op)
 	} catch (e) {
 		if (verbose) e.message = `${e.toString()}\nRequest: ${JSON.stringify(req, null, 2)}\nResponse: ${JSON.stringify(res, null, 2)}`
 		throw e
 	}
 	return res
+}
+
+function getResponseSpec(spec) {
+	if (typeof spec.response === 'object') {
+		return spec.response
+	} else {
+		return { status: spec.response }
+	}
 }
 
 function validateStatus(res, id) {
@@ -232,14 +258,24 @@ function validateStatus(res, id) {
 	}
 }
 
-function validateHeaders(res, headersSchema) {
+function validateHeaders(res, headersSchema, responseSpec) {
 	if (headersSchema) {
 		jsonSchema.validate(res.headers, headersSchema, { throwError: true })
 	}
+	if (responseSpec.header) {
+		// Check that any expect header values are indeed present.
+		const h = responseSpec.header
+		Object.keys(h)
+			.map(k => k.toLowerCase())
+			.every(k => assert.equal(`${res.headers[k]}`.toLowerCase(), `${h[k]}`.toLowerCase()))
+	}
 }
-function validateBody(res, bodySchema) {
+function validateBody(res, bodySchema, responseSpec) {
 	if (bodySchema) {
 		jsonSchema.validate(res.data, bodySchema, { throwError: true })
+	}
+	if (responseSpec.body) {
+		assert.deepEqual(res.data, responseSpec.body)
 	}
 }
 

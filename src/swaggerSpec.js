@@ -3,7 +3,6 @@
 const fs = require('fs')
 const path = require('path')
 const util = require('./util')
-const assert = require('assert')
 
 const HTTP_METHODS = [
 	'get',
@@ -92,7 +91,7 @@ function getXProps(data) {
 }
 
 function createPathOperation(method, pathInfo, pathsXProps, spec) {
-	const operationInfo = resolveRefs(pathInfo[method], spec)
+	const operationInfo = util.resolveSchemaRefs(pathInfo[method], spec)
 	if (!operationInfo.parameters) operationInfo.parameters = []
 	if (!operationInfo.responses) operationInfo.responses = {}
 	const operation = Object.assign({
@@ -107,44 +106,6 @@ function createPathOperation(method, pathInfo, pathsXProps, spec) {
 	}, pathsXProps, operationInfo)
 	delete operation.operationId
 	return operation
-}
-
-const refCache = new Map()
-const dataCache = new Set()
-
-function resolveRefs(data, spec) {
-	if (!data || dataCache.has(data)) return data
-
-	if (Array.isArray(data)) {
-		return data.map(item => resolveRefs(item, spec))
-	} else if (typeof data === 'object') {
-		if (data.$ref) {
-			const resolved = resolveRef(data.$ref, spec)
-			delete data.$ref
-			data = Object.assign({}, resolved, data)
-		}
-		dataCache.add(data)
-
-		for (let name in data) {
-			data[name] = resolveRefs(data[name], spec)
-		}
-	}
-	return data
-}
-
-function resolveRef(ref, spec) {
-	//if (refCache.has(ref)) return refCache.get(ref)
-	const parts = ref.split('/')
-
-	assert.ok(parts.shift() === '#', `Only support JSON Schema $refs in format '#/path/to/ref'`)
-
-	let value = spec
-	while (parts.length) {
-		value = value[parts.shift()]
-		assert.ok(value, `Invalid schema reference: ${ref}`)
-	}
-	refCache.set(ref, value)
-	return value
 }
 
 function getOperationProperty(prop, pathInfo, spec) {
