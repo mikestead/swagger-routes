@@ -12,6 +12,7 @@ exports.COLLECTION_FORMAT = COLLECTION_FORMAT
 exports.formatGroupData = formatGroupData
 exports.getPathParams = getPathParams
 exports.getFormData = getFormData
+exports.castQueryParams = castQueryParams
 
 function formatGroupData(groupSchema, groupData) {
 	const paramNames = Object.keys(groupSchema.properties)
@@ -79,4 +80,17 @@ function getFormData(req) {
 		return formData
 	}
 	return null
+}
+
+function castQueryParams(req, groupSchemas) {
+	const query = req.query || {}
+	const querySchema = groupSchemas.query || { properties: {} }
+	Object.keys(query).forEach(key => {
+		const propSchema = querySchema.properties[key]
+		if (propSchema && (propSchema.type === 'integer' || propSchema.type === 'number')) {
+			const num = Number(query[key])
+			if (!isNaN(num)) query[key] = num
+		}
+	})
+	return query
 }

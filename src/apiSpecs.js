@@ -26,41 +26,59 @@ module.exports = apiSpecs
  *
  * @param {object} options
  *  - `api` path to your Swagger spec, or the loaded spec reference.
- *  - `host` server host + port where your tests will run e.g. `localhost:3453`
+ *  - `host` server host + port where your tests will run e.g. `localhost:3453`.
  *  - `specs` path to specs dir, or function to return the set of specs for an operation.
- *  - `maxTimeout` maximum time a test can take to complete
+ *  - `maxTimeout` maximum time a test can take to complete.
  *  - `slowTime` time taken before a test is marked slow. Defaults to 1 second.
- *  - `startServer(done)` function called before all tests where you can start your local server
- *  - `stopServer(done)`function called after all tests where you can stop your local server
- * @return {void}
+ *  - `startServer(done)` function called before all tests where you can start your local server.
+ *  - `stopServer(done)`function called after all tests where you can stop your local server.
+ *  - `fixtures`: path to a yaml file with test fixtures.
+ *  - `prefetch`: path to a yaml file with requests to prefetch values into fixtures before running tests.
+ * @return {*}
  */
 function apiSpecs(options) {
 	options = Options.applyDefaultSpecOptions(options)
 	const api = swaggerSpec.getSpecSync(options.api)
 	const operations = swaggerSpec.getAllOperations(api)
-	options.fixtures = getFixtures(options)
+	options.fixtures = getJsonFile(options.fixtures)
 	describeApi(api, operations, options)
 }
 
-function getFixtures(options) {
-	const p = path.resolve(options.fixtures)
-	if (!options.fixtures || !util.existsSync(p)) return {}
+function getJsonFile(jsonPath) {
+	if (!jsonPath || typeof jsonPath === 'object') return jsonPath || {}
+	const p = path.resolve(jsonPath)
+	if (!p || !util.existsSync(p)) return {}
 	const contents = fs.readFileSync(p, 'utf8')
 	return util.parseFileContents(contents, p)
 }
 
 function describeApi(api, operations, options) {
 	describe(api.info.title, function () {
-		this.slow(options.slowTime || 2000)
+		this.slow(options.slowTime || 1500)
 		this.timeout(options.maxTimeout || 10000)
 
-		before(done => options.startServer(done))
+		before(done => {
+			options.startServer(e => {
+				if (e) done(e)
+				else prefetch(operations, options).then(() => done(), e => done(e))
+			})
+		})
 		after(done => {
 			fileUtil.disableOldOperationFiles(operations, 'specs', options)
 			options.stopServer(done)
 		})
 		describeOperations(operations, options)
 	})
+}
+
+function prefetch(operations, options) {
+	const prefetch = getJsonFile(options.prefetch)
+	return Promise.all(Object.keys(prefetch).map(id => {
+		const data = prefetch[id]
+		const steps = Array.isArray(data) ? data : [ data ]
+		return runSteps(steps, {}, operations, options, true)
+			.catch(e => { e.message = `${e.message} in '${id}'`; throw e })
+	}))
 }
 
 function describeOperations(operations, options) {
@@ -102,16 +120,18 @@ function getStepOperation(step, operations, primaryOp) {
 }
 
 function runStep(step, op, options, verbose, acc) {
+	if (!acc) acc = []
 	const req = createRequest(op, step.request, options, acc)
 	if (expectsValidRequest(step)) {
 		validateRequest(req, step, op, verbose)
 	}
 	return request(req)
+		.then(res => { acc.push({ req, res }); return res })
 		.then(
-			res => validateResponse(req, res, step, op, verbose),
-			res => validateResponse(req, res, step, op, verbose)
+			res => validateResponse(req, res, step, op, options, acc, verbose),
+			res => validateResponse(req, res, step, op, options, acc, verbose)
 		)
-		.then(res => (acc || []).concat({ req, res }))
+		.then(() => acc)
 }
 
 function getSpecs(op, options) {
@@ -148,7 +168,8 @@ function getSpecInfo(id) {
 }
 
 function createRequest(op, testReqData, options, acc) {
-	testReqData = populateProperties(testReqData, acc)
+	testReqData = populateProperties(testReqData, acc, options)
+
 	let pathname = op.fullPath
 	if (testReqData.path) {
 		pathname = Object.keys(testReqData.path)
@@ -168,23 +189,25 @@ function createRequest(op, testReqData, options, acc) {
 	}
 }
 
-function populateProperties(source, acc) {
+function populateProperties(source, acc, options) {
 	if (Array.isArray(source)) {
-		source.forEach((v, i) => source[i] = populateProperties(v, acc))
+		source.forEach((v, i) => source[i] = populateProperties(v, acc, options))
 	} else if (typeof source === 'object') {
-		Object.keys(source || {}).forEach(key => source[key] = populateProperties(source[key], acc))
+		Object.keys(source || {}).forEach(key => source[key] = populateProperties(source[key], acc, options))
 	} else if (typeof source === 'string') {
-		const stepAcc = { step: acc }
+		const stepAcc = { step: acc, fixtures: options.fixtures }
 		if (source.startsWith('step[')) {
 			return parseProperty(source.split('.'), stepAcc)
 		} else {
-			const tokenMatch = source.match(/\$\{(step\[\d+\][\w\[\d\]\.]+)\}/g)
-			if (tokenMatch) {
-				return tokenMatch.reduce((str, token) => {
+			const TOKEN_REGEX = /\$\{((step\[\d+\]|fixtures)[\w\[\d\]\.]+)\}/g
+			let tokenMatch = source.match(TOKEN_REGEX)
+			while (tokenMatch) {
+				source = tokenMatch.reduce((str, token) => {
 					const path = token.slice(2, -1)
 					const value = parseProperty(path.split('.'), stepAcc)
 					return str.split(token).join(value)
 				}, source)
+				tokenMatch = source.match(TOKEN_REGEX)
 			}
 		}
 	}
@@ -225,8 +248,8 @@ function validateRequest(req, spec, op, verbose) {
 	})
 }
 
-function validateResponse(req, res, spec, op, verbose) {
-	const responseSpec = getResponseSpec(spec)
+function validateResponse(req, res, spec, op, options, acc, verbose) {
+	const responseSpec = getResponseSpec(spec, acc, options)
 	const responseSchema = op.responseSchemas[responseSpec.status]
 
 	assert.ok(responseSchema, `No response schema found for response status '${responseSpec.status}'`)
@@ -236,6 +259,7 @@ function validateResponse(req, res, spec, op, verbose) {
 		validateHeaders(res, responseSchema.headersSchema, responseSpec)
 		validateBody(res, responseSchema.bodySchema, responseSpec)
 		validateContentType(res, op)
+		updateFixtures(responseSpec, options)
 	} catch (e) {
 		if (verbose) e.message = `${e.toString()}\nRequest: ${JSON.stringify(req, null, 2)}\nResponse: ${JSON.stringify(res, null, 2)}`
 		throw e
@@ -243,9 +267,9 @@ function validateResponse(req, res, spec, op, verbose) {
 	return res
 }
 
-function getResponseSpec(spec) {
+function getResponseSpec(spec, acc, options) {
 	if (typeof spec.response === 'object') {
-		return spec.response
+		return populateProperties(spec.response, acc, options)
 	} else {
 		return { status: spec.response }
 	}
@@ -291,4 +315,10 @@ function expectsValidRequest(step) {
 function hasSuccessStatus(status) {
 	status = Number(status)
 	return (Number.isInteger(status) && status >= 200 && status < 400)
+}
+
+function updateFixtures(responseSpec, options) {
+	if (responseSpec.fixtures) {
+		Object.assign(options.fixtures, responseSpec.fixtures)
+	}
 }

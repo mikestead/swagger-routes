@@ -10,13 +10,14 @@ exports.validateRequest = validateRequest
 
 function createValidationCheck(operation) {
 	return function validator(req, res, next) {
-		next(validateRequest(req, operation))
+		const result = validateRequest(req, operation)
+		next(checkValidationResult(result))
 	}
 }
 
 function validateRequest(req, operation) {
 	const groupSchemas = operation.paramGroupSchemas
-	const reqData = groupRequestData(req, operation)
+	const reqData = groupRequestData(req, operation, groupSchemas)
 	return Object.keys(groupSchemas)
 		.map(groupId => validateParam(
 			groupId,
@@ -27,11 +28,11 @@ function validateRequest(req, operation) {
 		.reduce(reduceFailures, undefined) // must pass init value or reducer doesn't run for single value
 }
 
-function groupRequestData(req, operation) {
+function groupRequestData(req, operation, groupSchemas) {
 	return {
 		header: req.headers || {},
 		path: parameters.getPathParams(req, operation),
-		query: req.query || {},
+		query: parameters.castQueryParams(req, groupSchemas),
 		body: req.body || {},
 		formData: parameters.getFormData(req)
 	}
@@ -87,4 +88,20 @@ function formatFailure(failure) {
 	failure.errors = failure.errors.filter(err => err.property.indexOf('.') !== -1)
 	failure.errors.forEach(err => err.message = `${err.property} ${err.message}`)
 	return failure
+}
+
+function checkValidationResult(result) {
+	if (!result || result.valid) return undefined
+	const message = result.errors.map(e => e.message).join(', ')
+	return new ValidationError(message)
+}
+
+class ValidationError extends Error {
+	constructor(message) {
+		super(message)
+		this.name = this.constructor.name
+		this.message = message
+		this.status = this.statusCode = 400
+		Error.captureStackTrace(this, this.constructor.name)
+	}
 }
