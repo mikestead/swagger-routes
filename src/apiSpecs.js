@@ -34,7 +34,7 @@ module.exports = apiSpecs
  *  - `stopServer(done)`function called after all tests where you can stop your local server.
  *  - `fixtures`: path to a yaml file with test fixtures.
  *  - `prefetch`: path to a yaml file with requests to prefetch values into fixtures before running tests.
- * @return {*}
+ * @return {void}
  */
 function apiSpecs(options) {
 	options = Options.applyDefaultSpecOptions(options)
