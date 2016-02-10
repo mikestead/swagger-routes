@@ -9,116 +9,116 @@ exports.createValidationCheck = createValidationCheck
 exports.validateRequest = validateRequest
 
 function createValidationCheck(operation) {
-	return function validator(req, res, next) {
-		const result = validateRequest(req, operation)
-		next(checkValidationResult(result))
-	}
+  return function validator(req, res, next) {
+    const result = validateRequest(req, operation)
+    next(checkValidationResult(result))
+  }
 }
 
 function validateRequest(req, operation) {
-	const groupSchemas = operation.paramGroupSchemas
-	const reqData = groupRequestData(req, operation, groupSchemas)
-	return Object.keys(groupSchemas)
-		.map(groupId => validateParam(
-			groupId,
-			groupSchemas[groupId],
-			reqData[groupId]
-		))
-		.filter(result => !result.valid)
-		.reduce(reduceFailures, undefined) // must pass init value or reducer doesn't run for single value
+  const groupSchemas = operation.paramGroupSchemas
+  const reqData = groupRequestData(req, operation, groupSchemas)
+  return Object.keys(groupSchemas)
+    .map(groupId => validateParam(
+      groupId,
+      groupSchemas[groupId],
+      reqData[groupId]
+    ))
+    .filter(result => !result.valid)
+    .reduce(reduceFailures, undefined) // must pass init value or reducer doesn't run for single value
 }
 
 function groupRequestData(req, operation, groupSchemas) {
-	return {
-		header: req.headers || {},
-		path: parameters.getPathParams(req, operation),
-		query: parameters.castQueryParams(req, groupSchemas),
-		body: req.body || {},
-		formData: parameters.getFormData(req)
-	}
+  return {
+    header: req.headers || {},
+    path: parameters.getPathParams(req, operation),
+    query: parameters.castQueryParams(req, groupSchemas),
+    body: req.body || {},
+    formData: parameters.getFormData(req)
+  }
 }
 
 function validateParam(groupId, groupSchema, groupData) {
-	groupData = parameters.formatGroupData(groupSchema, groupData)
+  groupData = parameters.formatGroupData(groupSchema, groupData)
 
-	let result = jsonSchema.validate(groupData, groupSchema, { propertyName: groupId })
-	result = checkForMissingPathParams(groupId, groupSchema, groupData, result)
-	result = checkForInvalidPathSegmentName(groupId, groupSchema, groupData, result)
-	result = removeErrorsForAllowedEmptyValue(groupId, groupSchema, groupData, result)
-	return result
+  let result = jsonSchema.validate(groupData, groupSchema, { propertyName: groupId })
+  result = checkForMissingPathParams(groupId, groupSchema, groupData, result)
+  result = checkForInvalidPathSegmentName(groupId, groupSchema, groupData, result)
+  result = removeErrorsForAllowedEmptyValue(groupId, groupSchema, groupData, result)
+  return result
 }
 
 function checkForMissingPathParams(groupId, schema, data, result) {
-	if (groupId !== 'path' || !schema.properties) return result
-	data = data || {}
-	Object.keys(schema.properties).forEach(prop => {
-		// if the value doesn't exist or appears as an un-replaced Swagger
-		// path token then assume the path param has not been provided
-		if (!data[prop] || data[prop].match(new RegExp(`^{${prop}}$`))) {
-			const propPath = result.propertyPath
-			result.propertyPath += `.${prop}`
-			result.addError({ message: `is required`, name: prop })
-			result.propertyPath = propPath
-		}
-	})
-	return result
+  if (groupId !== 'path' || !schema.properties) return result
+  data = data || {}
+  Object.keys(schema.properties).forEach(prop => {
+    // if the value exists but as an un-replaced Swagger
+    // path token then assume the path param has not been provided
+    if (data[prop] && data[prop].match(new RegExp(`^{${prop}}$`))) {
+      const propPath = result.propertyPath
+      result.propertyPath += `.${prop}`
+      result.addError({ message: `is required`, name: prop })
+      result.propertyPath = propPath
+    }
+  })
+  return result
 }
 
 function checkForInvalidPathSegmentName(groupId, schema, data, result) {
-	if (groupId === PARAM_GROUP.PATH) {
-		const propKeys = Object.keys(schema.properties)
-		Object.keys(data).forEach(key => {
-			if (propKeys.indexOf(key) === -1) {
-				const path = result.propertyPath
-				result.propertyPath += `.${key}`
-				result.addError({ message: 'is an invalid path segment', name: key })
-				result.propertyPath = path
-			}
-		})
-	}
-	return result
+  if (groupId === PARAM_GROUP.PATH) {
+    const propKeys = Object.keys(schema.properties)
+    Object.keys(data).forEach(key => {
+      if (propKeys.indexOf(key) === -1) {
+        const path = result.propertyPath
+        result.propertyPath += `.${key}`
+        result.addError({ message: 'is an invalid path segment', name: key })
+        result.propertyPath = path
+      }
+    })
+  }
+  return result
 }
 
 function removeErrorsForAllowedEmptyValue(groupId, schema, data, result) {
-	if (groupId === PARAM_GROUP.QUERY || groupId === PARAM_GROUP.FORM_DATA) {
-		result.errors = result.errors.filter(err => {
-			const prop = err.property.indexOf('.') === -1 ? err.argument : err.property.split('.').pop()
-			const val = data[prop]
-			const spec = schema.properties[prop]
-			return !(spec && spec.allowEmptyValue && !val && val !== 0)
-		})
-	}
-	return result
+  if (groupId === PARAM_GROUP.QUERY || groupId === PARAM_GROUP.FORM_DATA) {
+    result.errors = result.errors.filter(err => {
+      const prop = err.property.indexOf('.') === -1 ? err.argument : err.property.split('.').pop()
+      const val = data[prop]
+      const spec = schema.properties[prop]
+      return !(spec && spec.allowEmptyValue && !val && val !== 0)
+    })
+  }
+  return result
 }
 
 function reduceFailures(master, failure) {
-	failure = formatFailure(failure)
-	if (master) {
-		master.importErrors(failure)
-		return master
-	} else {
-		return failure
-	}
+  failure = formatFailure(failure)
+  if (master) {
+    master.importErrors(failure)
+    return master
+  } else {
+    return failure
+  }
 }
 
 function formatFailure(failure) {
-	failure.errors = failure.errors.filter(err => err.property.indexOf('.') !== -1)
-	failure.errors.forEach(err => err.message = `${err.property} ${err.message}`)
-	return failure
+  failure.errors = failure.errors.filter(err => err.property.indexOf('.') !== -1)
+  failure.errors.forEach(err => err.message = `${err.property} ${err.message}`)
+  return failure
 }
 
 function checkValidationResult(result) {
-	if (!result || result.valid) return undefined
-	const message = result.errors.map(e => e.message).join(', ')
-	return new ValidationError(message)
+  if (!result || result.valid) return undefined
+  const message = result.errors.map(e => e.message).join(', ')
+  return new ValidationError(message)
 }
 
 class ValidationError extends Error {
-	constructor(message) {
-		super(message)
-		this.name = this.constructor.name
-		this.message = message
-		this.status = this.statusCode = 400
-		Error.captureStackTrace(this, this.constructor.name)
-	}
+  constructor(message) {
+    super(message)
+    this.name = this.constructor.name
+    this.message = message
+    this.status = this.statusCode = 400
+    Error.captureStackTrace(this, this.constructor.name)
+  }
 }

@@ -10,19 +10,19 @@ const Options = require('./options')
 module.exports = addHandlers
 
 function addHandlers(app, options) {
-	const api = swaggerSpec.getSpecSync(options.api)
-	const operations = swaggerSpec.getAllOperations(api)
+  const api = swaggerSpec.getSpecSync(options.api)
+  const operations = swaggerSpec.getAllOperations(api)
 
-	options = Options.applyDefaultOptions(options, { api })
-	app = Options.applyDefaultAppOptions(app)
+  options = Options.applyDefaultOptions(options, { api })
+  app = Options.applyDefaultAppOptions(app)
 
-	routeRegister.registerRoutes(app, operations, options)
+  routeRegister.registerRoutes(app, operations, options)
 
-	fileHandlers.disableOldHandlers(operations, options)
-	fileAuthorizers.disableOldAuthorizers(options)
+  fileHandlers.disableOldHandlers(operations, options)
+  fileAuthorizers.disableOldAuthorizers(options)
 
-	if (app.swagger) app.swagger.add(api)
-	else app.swagger = new SwaggerApis().add(api)
+  if (app.swagger) app.swagger.add(api)
+  else app.swagger = new SwaggerApis().add(api)
 
-	return app
+  return app
 }

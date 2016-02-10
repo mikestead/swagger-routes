@@ -19,63 +19,63 @@ exports.parseFileContents = parseFileContents
 exports.resolveSchemaRefs = resolveSchemaRefs
 
 function exists(filePath) {
-	return new Promise((res, rej) =>
-		fs.lstat(filePath, (err, stats) =>
-			err ? rej(err) : res(stats)))
+  return new Promise((res, rej) =>
+    fs.lstat(filePath, (err, stats) =>
+      err ? rej(err) : res(stats)))
 }
 
 function existsSync(filePath) {
-	try {
-		return fs.lstatSync(filePath)
-	} catch (e) {
-		return false
-	}
+  try {
+    return fs.lstatSync(filePath)
+  } catch (e) {
+    return false
+  }
 }
 
 function mkdir(dirPath) {
-	return new Promise((res, rej) =>
-		mkdirp(dirPath, err =>
-			err && err.code !== 'EEXIST' ? rej(err) : res()))
+  return new Promise((res, rej) =>
+    mkdirp(dirPath, err =>
+      err && err.code !== 'EEXIST' ? rej(err) : res()))
 }
 
 function readFile(filePath) {
-	return new Promise((res, rej) =>
-		fs.readFile(filePath, 'utf8', (err, contents) =>
-			err ? rej(err) : res(contents)))
+  return new Promise((res, rej) =>
+    fs.readFile(filePath, 'utf8', (err, contents) =>
+      err ? rej(err) : res(contents)))
 }
 
 function writeFile(filePath, contents) {
-	return new Promise((res, rej) =>
-		mkdir(dirname(filePath)).then(() =>
-			fs.writeFile(filePath, contents, err =>
-				err ? rej(err) : res())))
+  return new Promise((res, rej) =>
+    mkdir(dirname(filePath)).then(() =>
+      fs.writeFile(filePath, contents, err =>
+        err ? rej(err) : res())))
 }
 
 function writeFileSync(filePath, contents) {
-	mkdirp.sync(dirname(filePath))
-	fs.writeFileSync(filePath, contents)
+  mkdirp.sync(dirname(filePath))
+  fs.writeFileSync(filePath, contents)
 }
 
 function renameFile(oldPath, newPath) {
-	return new Promise((res, rej) =>
-		fs.rename(oldPath, newPath, err =>
-			err ? rej(err) : res()))
+  return new Promise((res, rej) =>
+    fs.rename(oldPath, newPath, err =>
+      err ? rej(err) : res()))
 }
 
 function readDir(dirPath) {
-	return new Promise((res, rej) =>
-		fs.readdir(dirPath, (err, files) =>
-			err ? rej(err) : res(files)))
+  return new Promise((res, rej) =>
+    fs.readdir(dirPath, (err, files) =>
+      err ? rej(err) : res(files)))
 }
 
 function parseFileContents(contents, path) {
-	return isYamlFile(path) ?
-		yaml.safeLoad(contents) :
-		JSON.parse(contents)
+  return isYamlFile(path) ?
+    yaml.safeLoad(contents) :
+    JSON.parse(contents)
 }
 
 function isYamlFile(filePath) {
-	return path.extname(filePath).match(/^\.ya?ml$/)
+  return path.extname(filePath).match(/^\.ya?ml$/)
 }
 
 const dataCache = new Set()
@@ -88,34 +88,34 @@ const dataCache = new Set()
  * @returns {*} the resolved data object
  */
 function resolveSchemaRefs(data, lookup) {
-	if (!data || dataCache.has(data)) return data
+  if (!data || dataCache.has(data)) return data
 
-	if (Array.isArray(data)) {
-		return data.map(item => resolveSchemaRefs(item, lookup))
-	} else if (typeof data === 'object') {
-		if (data.$ref) {
-			const resolved = resolveSchemaRef(data.$ref, lookup)
-			delete data.$ref
-			data = Object.assign({}, resolved, data)
-		}
-		dataCache.add(data)
+  if (Array.isArray(data)) {
+    return data.map(item => resolveSchemaRefs(item, lookup))
+  } else if (typeof data === 'object') {
+    if (data.$ref) {
+      const resolved = resolveSchemaRef(data.$ref, lookup)
+      delete data.$ref
+      data = Object.assign({}, resolved, data)
+    }
+    dataCache.add(data)
 
-		for (let name in data) {
-			data[name] = resolveSchemaRefs(data[name], lookup)
-		}
-	}
-	return data
+    for (let name in data) {
+      data[name] = resolveSchemaRefs(data[name], lookup)
+    }
+  }
+  return data
 }
 
 function resolveSchemaRef(ref, lookup) {
-	const parts = ref.split('/')
+  const parts = ref.split('/')
 
-	assert.ok(parts.shift() === '#', `Only support JSON Schema $refs in format '#/path/to/ref'`)
+  assert.ok(parts.shift() === '#', `Only support JSON Schema $refs in format '#/path/to/ref'`)
 
-	let value = lookup
-	while (parts.length) {
-		value = value[parts.shift()]
-		assert.ok(value, `Invalid schema reference: ${ref}`)
-	}
-	return value
+  let value = lookup
+  while (parts.length) {
+    value = value[parts.shift()]
+    assert.ok(value, `Invalid schema reference: ${ref}`)
+  }
+  return value
 }

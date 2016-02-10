@@ -13,156 +13,156 @@ delete api.securityDefinitions
 delete api.paths['/pets'].post.security
 
 const options = {
-	api,
-	docsPath: '/api-docs',
-	handlers: () => function handler() {},
-	authorizers: () => function authorizer() {}
+  api,
+  docsPath: '/api-docs',
+  handlers: () => function handler() {},
+  authorizers: () => function authorizer() {}
 }
 
 describe('index', () => {
-	[ 'express', 'restify' ].forEach(lib => {
-		describe(lib, () => {
-			describe('addRoutes', () => {
-				const isExpress = lib === 'express'
-				const verifyRoute = isExpress ? verifyExpressRoute : verifyRestifyRoute
-				let app = null
+  [ 'express', 'restify' ].forEach(lib => {
+    describe(lib, () => {
+      describe('addRoutes', () => {
+        const isExpress = lib === 'express'
+        const verifyRoute = isExpress ? verifyExpressRoute : verifyRestifyRoute
+        let app = null
 
-				beforeEach(() => {
-					if (isExpress) app = express()
-					else app = restify.createServer()
-				})
+        beforeEach(() => {
+          if (isExpress) app = express()
+          else app = restify.createServer()
+        })
 
-				afterEach(() => {
-					if (!isExpress) app.close()
-				})
+        afterEach(() => {
+          if (!isExpress) app.close()
+        })
 
-				it('should translate swagger operation into route', () => {
-					addHandlers(app, options)
+        it('should translate swagger operation into route', () => {
+          addHandlers(app, options)
 
-					verifyAppStackSize(app, 2)
+          verifyAppStackSize(app, 2)
 
-					verifyRoute(app, '/pets', [ 'validator', 'handler' ])
-					verifyRoute(app, options.docsPath, [ 'handler' ])
-				})
+          verifyRoute(app, '/pets', [ 'validator', 'handler' ])
+          verifyRoute(app, options.docsPath, [ 'handler' ])
+        })
 
-				it('should always register doc route', () => {
-					const api2 = Object.assign({}, api)
-					delete api2.paths
-					const options2 = Object.assign({}, options, { api: api2 })
-					addHandlers(app, options2)
+        it('should always register doc route', () => {
+          const api2 = Object.assign({}, api)
+          delete api2.paths
+          const options2 = Object.assign({}, options, { api: api2 })
+          addHandlers(app, options2)
 
-					verifyAppStackSize(app, 1)
+          verifyAppStackSize(app, 1)
 
-					verifyRoute(app, options.docsPath, [ 'handler' ])
-				})
+          verifyRoute(app, options.docsPath, [ 'handler' ])
+        })
 
-				it('should support handler middleware', () => {
-					const options2 = Object.assign({}, options)
-					options2.handlers = {
-						create: () => ({
-							middleware: function middleware() {},
-							handler: function handler() {}
-						})
-					}
+        it('should support handler middleware', () => {
+          const options2 = Object.assign({}, options)
+          options2.handlers = {
+            create: () => ({
+              middleware: function middleware() {},
+              handler: function handler() {}
+            })
+          }
 
-					addHandlers(app, options2)
-					verifyRoute(app, '/pets', [ 'middleware', 'validator', 'handler' ])
-				})
+          addHandlers(app, options2)
+          verifyRoute(app, '/pets', [ 'middleware', 'validator', 'handler' ])
+        })
 
-				it('should support handler multi-middleware', () => {
-					const options2 = Object.assign({}, options)
-					options2.handlers = {
-						create: () => ({
-							middleware: [
-								function middleware1() {},
-								function middleware2() {}
-							],
-							handler: function handler() {}
-						})
-					}
+        it('should support handler multi-middleware', () => {
+          const options2 = Object.assign({}, options)
+          options2.handlers = {
+            create: () => ({
+              middleware: [
+                function middleware1() {},
+                function middleware2() {}
+              ],
+              handler: function handler() {}
+            })
+          }
 
-					addHandlers(app, options2)
-					verifyRoute(app, '/pets', [ 'middleware1', 'middleware2', 'validator', 'handler' ])
-				})
+          addHandlers(app, options2)
+          verifyRoute(app, '/pets', [ 'middleware1', 'middleware2', 'validator', 'handler' ])
+        })
 
-				it('should add auth middleware to secure routes', () => {
-					const options2 = Object.assign({}, options, { api: secureApi })
+        it('should add auth middleware to secure routes', () => {
+          const options2 = Object.assign({}, options, { api: secureApi })
 
-					addHandlers(app, options2)
-					verifyRoute(app, '/pets', [ 'authorize', 'validator', 'handler' ])
-				})
+          addHandlers(app, options2)
+          verifyRoute(app, '/pets', [ 'authorize', 'validator', 'handler' ])
+        })
 
-				it('should add auth middleware before other route middleware', () => {
-					const options2 = Object.assign({}, options, { api: secureApi })
-					options2.handlers = {
-						create: () => ( {
-							middleware: function middleware() {},
-							handler: function handler() {}
-						})
-					}
+        it('should add auth middleware before other route middleware', () => {
+          const options2 = Object.assign({}, options, { api: secureApi })
+          options2.handlers = {
+            create: () => ( {
+              middleware: function middleware() {},
+              handler: function handler() {}
+            })
+          }
 
-					addHandlers(app, options2)
-					verifyRoute(app, '/pets', [ 'authorize', 'middleware', 'validator', 'handler' ])
-				})
+          addHandlers(app, options2)
+          verifyRoute(app, '/pets', [ 'authorize', 'middleware', 'validator', 'handler' ])
+        })
 
-				it('should support registering multiple Swagger api specs', () => {
-					const api2 = Object.assign({}, api, { basePath: '/v2' })
-					const options2 = Object.assign({}, options, { api: api2 })
+        it('should support registering multiple Swagger api specs', () => {
+          const api2 = Object.assign({}, api, { basePath: '/v2' })
+          const options2 = Object.assign({}, options, { api: api2 })
 
-					addHandlers(app, options)
-					addHandlers(app, options2)
+          addHandlers(app, options)
+          addHandlers(app, options2)
 
-					verifyAppStackSize(app, 4)
+          verifyAppStackSize(app, 4)
 
-					verifyRoute(app, '/pets', [ 'validator', 'handler' ], api.basePath)
-					verifyRoute(app, options.docsPath, [ 'handler' ], api.basePath)
+          verifyRoute(app, '/pets', [ 'validator', 'handler' ], api.basePath)
+          verifyRoute(app, options.docsPath, [ 'handler' ], api.basePath)
 
-					verifyRoute(app, '/pets', [ 'validator', 'handler' ], api2.basePath)
-					verifyRoute(app, options.docsPath, [ 'handler' ], api2.basePath)
-				})
+          verifyRoute(app, '/pets', [ 'validator', 'handler' ], api2.basePath)
+          verifyRoute(app, options.docsPath, [ 'handler' ], api2.basePath)
+        })
 
-				it('should expose swagger apis via app/server property', () => {
-					const api2 = Object.assign({}, api, { basePath: '/v2' })
-					const options2 = Object.assign({}, options, { api: api2 })
+        it('should expose swagger apis via app/server property', () => {
+          const api2 = Object.assign({}, api, { basePath: '/v2' })
+          const options2 = Object.assign({}, options, { api: api2 })
 
-					addHandlers(app, options)
-					addHandlers(app, options2)
+          addHandlers(app, options)
+          addHandlers(app, options2)
 
-					expect(app.swagger).toExist()
-					expect(app.swagger.size).toBe(2)
-				})
-			})
-		})
-	})
+          expect(app.swagger).toExist()
+          expect(app.swagger.size).toBe(2)
+        })
+      })
+    })
+  })
 })
 
 function verifyExpressRoute(app, path, stackNames, basePath) {
-	basePath = basePath || api.basePath
-	path = `${basePath}${path}`
-	const layer = app._router.stack.find(layer => layer.route ? layer.route.path === path : false)
-	const route = layer ? layer.route : null
-	expect(route).toExist()
-	expect(route.path).toBe(path)
-	verifyRouteStack(route.stack, stackNames)
+  basePath = basePath || api.basePath
+  path = `${basePath}${path}`
+  const layer = app._router.stack.find(layer => layer.route ? layer.route.path === path : false)
+  const route = layer ? layer.route : null
+  expect(route).toExist()
+  expect(route.path).toBe(path)
+  verifyRouteStack(route.stack, stackNames)
 }
 
 function verifyRestifyRoute(app, path, stackNames, basePath) {
-	basePath = basePath || api.basePath
-	path = `${basePath}${path}`
-	const method = path.endsWith('/api-docs') ? 'get' : 'post'
-	const name = `${method}${path.replace(/[ -\/]/g, '')}`
-	const route = app.router.mounts[name]
-	expect(route).toExist()
-	expect(route.spec.path).toBe(path)
-	verifyRouteStack(app.routes[name], stackNames)
+  basePath = basePath || api.basePath
+  path = `${basePath}${path}`
+  const method = path.endsWith('/api-docs') ? 'get' : 'post'
+  const name = `${method}${path.replace(/[ -\/]/g, '')}`
+  const route = app.router.mounts[name]
+  expect(route).toExist()
+  expect(route.spec.path).toBe(path)
+  verifyRouteStack(app.routes[name], stackNames)
 }
 
 function verifyRouteStack(stack, names) {
-	expect(stack.length).toBe(names.length)
-	names.forEach((name, i) => expect(stack[i].name).toBe(name))
+  expect(stack.length).toBe(names.length)
+  names.forEach((name, i) => expect(stack[i].name).toBe(name))
 }
 
 function verifyAppStackSize(app, size) {
-	if (app._router) expect(app._router.stack.length - 2).toBe(size)
-	else expect(Object.keys(app.router.mounts).length).toBe(size)
+  if (app._router) expect(app._router.stack.length - 2).toBe(size)
+  else expect(Object.keys(app.router.mounts).length).toBe(size)
 }

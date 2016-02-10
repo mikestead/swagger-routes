@@ -12,66 +12,66 @@ const operations = swaggerSpec.getAllOperations(api)
 const operationId = 'listPets'
 const listPetsOp = operations.find(op => op.id === operationId)
 const options = applyDefaultOptions({
-	api,
-	handlers: './bin/handler'
+  api,
+  handlers: './bin/handler'
 })
 
 describe('fileHandlers', () => {
-	afterEach(() => del(options.handlers.path))
+  afterEach(() => del(options.handlers.path))
 
-	describe('enableHandler', () => {
-		it('should generate a route handler file based on operation id', () => {
-			const fileInfo = fileHandlers.enableHandler(listPetsOp, options)
+  describe('enableHandler', () => {
+    it('should generate a route handler file based on operation id', () => {
+      const fileInfo = fileHandlers.enableHandler(listPetsOp, options)
 
-			expect(fileInfo.gen).toBe(true)
-			expect(fileInfo.old).toBe(false)
-			expect(util.existsSync(fileInfo.path)).toNotBe(false)
-		})
+      expect(fileInfo.gen).toBe(true)
+      expect(fileInfo.old).toBe(false)
+      expect(util.existsSync(fileInfo.path)).toNotBe(false)
+    })
 
-		it('should NOT re-generate existing handler files', () => {
-			const fileInfoA = fileHandlers.enableHandler(listPetsOp, options)
-			const fileInfoB = fileHandlers.enableHandler(listPetsOp, options)
+    it('should NOT re-generate existing handler files', () => {
+      const fileInfoA = fileHandlers.enableHandler(listPetsOp, options)
+      const fileInfoB = fileHandlers.enableHandler(listPetsOp, options)
 
-			expect(fileInfoA.gen).toBe(true)
-			expect(fileInfoB.gen).toBe(false)
-		})
+      expect(fileInfoA.gen).toBe(true)
+      expect(fileInfoB.gen).toBe(false)
+    })
 
-		it('should renew old handler which is in use again', () => {
-			fileHandlers.enableHandler(listPetsOp, options)
-			fileHandlers.disableHandler(listPetsOp, options)
-			const fileInfo = fileHandlers.enableHandler(listPetsOp, options)
+    it('should renew old handler which is in use again', () => {
+      fileHandlers.enableHandler(listPetsOp, options)
+      fileHandlers.disableHandler(listPetsOp, options)
+      const fileInfo = fileHandlers.enableHandler(listPetsOp, options)
 
-			expect(fileInfo.gen).toBe(false)
-			expect(fileInfo.old).toBe(false)
-			expect(fileInfo.id).toBe(operationId)
-		})
-	})
+      expect(fileInfo.gen).toBe(false)
+      expect(fileInfo.old).toBe(false)
+      expect(fileInfo.id).toBe(operationId)
+    })
+  })
 
-	describe('disableHandler', () => {
-		it('should prefix underscore to handler files no longer in use', () => {
-			const fileInfoA = fileHandlers.enableHandler(listPetsOp, options)
-			const fileInfoB = fileHandlers.disableHandler(listPetsOp, options)
+  describe('disableHandler', () => {
+    it('should prefix underscore to handler files no longer in use', () => {
+      const fileInfoA = fileHandlers.enableHandler(listPetsOp, options)
+      const fileInfoB = fileHandlers.disableHandler(listPetsOp, options)
 
-			expect(fileInfoA.gen).toBe(true)
-			expect(fileInfoA.old).toBe(false)
-			expect(fileInfoA.id).toBe(operationId)
+      expect(fileInfoA.gen).toBe(true)
+      expect(fileInfoA.old).toBe(false)
+      expect(fileInfoA.id).toBe(operationId)
 
-			expect(fileInfoB.gen).toBe(false)
-			expect(fileInfoB.old).toBe(true)
-			expect(fileInfoB.id).toBe(`_${operationId}`)
-		})
-	})
+      expect(fileInfoB.gen).toBe(false)
+      expect(fileInfoB.old).toBe(true)
+      expect(fileInfoB.id).toBe(`_${operationId}`)
+    })
+  })
 
-	describe('disableOldHandlers', () => {
-		it('should disable handlers for operations which no longer exist', () => {
-			const listPetsOp2 = Object.assign({}, listPetsOp, { id: `${operationId}2` })
-			fileHandlers.enableHandler(listPetsOp2, options)
-			const fileInfos = fileHandlers.disableOldHandlers(operations, options)
-			const fileInfo = fileInfos[0]
+  describe('disableOldHandlers', () => {
+    it('should disable handlers for operations which no longer exist', () => {
+      const listPetsOp2 = Object.assign({}, listPetsOp, { id: `${operationId}2` })
+      fileHandlers.enableHandler(listPetsOp2, options)
+      const fileInfos = fileHandlers.disableOldHandlers(operations, options)
+      const fileInfo = fileInfos[0]
 
-			expect(fileInfo.gen).toBe(false)
-			expect(fileInfo.old).toBe(true)
-			expect(fileInfo.id).toBe(`_${operationId}2`)
-		})
-	})
+      expect(fileInfo.gen).toBe(false)
+      expect(fileInfo.old).toBe(true)
+      expect(fileInfo.id).toBe(`_${operationId}2`)
+    })
+  })
 })
