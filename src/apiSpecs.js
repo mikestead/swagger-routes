@@ -33,7 +33,8 @@ module.exports = apiSpecs
  *  - `startServer(done)` function called before all tests where you can start your local server.
  *  - `stopServer(done)`function called after all tests where you can stop your local server.
  *  - `fixtures`: path to a yaml file with test fixtures.
- *  - `prefetch`: path to a yaml file with requests to prefetch values into fixtures before running tests.
+ *  - `prefetch`: path to a yaml file with requests to prefetch values into fixtures before
+ *                executing specs, e.g. auth tokens
  * @return {void}
  */
 function apiSpecs(options) {
@@ -42,14 +43,6 @@ function apiSpecs(options) {
 	const operations = swaggerSpec.getAllOperations(api)
 	options.fixtures = getJsonFile(options.fixtures)
 	describeApi(api, operations, options)
-}
-
-function getJsonFile(jsonPath) {
-	if (!jsonPath || typeof jsonPath === 'object') return jsonPath || {}
-	const p = path.resolve(jsonPath)
-	if (!p || !util.existsSync(p)) return {}
-	const contents = fs.readFileSync(p, 'utf8')
-	return util.parseFileContents(contents, p)
 }
 
 function describeApi(api, operations, options) {
@@ -76,7 +69,8 @@ function prefetch(operations, options) {
 	return Promise.all(Object.keys(prefetch).map(id => {
 		const data = prefetch[id]
 		const steps = Array.isArray(data) ? data : [ data ]
-		return runSteps(steps, {}, operations, options, true)
+		const specInfo = getSpecInfo(id)
+		return runSteps(steps, {}, operations, specInfo, options)
 			.catch(e => { e.message = `${e.message} in '${id}'`; throw e })
 	}))
 }
@@ -97,20 +91,21 @@ function describeOperationSpecs(op, operations, options) {
 		specInfo.it(specInfo.summary, () => {
 			const spec = specs[id]
 			const steps = Array.isArray(spec) ? spec : [ spec ]
-			return runSteps(steps, op, operations, options, specInfo.verbose)
+			return runSteps(steps, op, operations, specInfo, options)
 		})
 	})
 }
 
-function runSteps(steps, op, operations, options, verbose) {
+function runSteps(steps, op, operations, specInfo, options) {
 	const fixtures = { fixtures: options.fixtures }
-	return steps.reduce((prev, step) => {
+	return steps.reduce((prev, step, i) => {
 		return prev.then(acc => {
 			step = util.resolveSchemaRefs(step, fixtures)
+			step.index = i
 			if (!step.request) step.request = {}
 			if (!step.response) step.response = {}
 			const stepOp = getStepOperation(step, operations, op)
-			return runStep(step, stepOp, options, verbose, acc)
+			return runStep(step, stepOp, specInfo, options, acc)
 		})
 	}, Promise.resolve([]))
 }
@@ -119,17 +114,26 @@ function getStepOperation(step, operations, primaryOp) {
 	return operations.find(opt => opt.id === step.request.operationId) || primaryOp
 }
 
-function runStep(step, op, options, verbose, acc) {
+function runStep(step, op, specInfo, options, acc) {
 	if (!acc) acc = []
 	const req = createRequest(op, step.request, options, acc)
+
 	if (expectsValidRequest(step)) {
-		validateRequest(req, step, op, verbose)
+		validateRequest(req, step, op)
 	}
 	return request(req)
-		.then(res => { acc.push({ req, res }); return res })
+		.then(res => {
+			acc.push({ req, res });
+			if (specInfo.verbose) {
+				const msg = `[${step.index}]${specInfo.summary}\n` +
+					`${prettyJson('Request:', req)}\n${prettyJson('Response:', res)}`
+				console.log(msg)
+			}
+			return res
+		})
 		.then(
-			res => validateResponse(req, res, step, op, options, acc, verbose),
-			res => validateResponse(req, res, step, op, options, acc, verbose)
+			res => validateResponse(req, res, step, op, options, acc),
+			res => validateResponse(req, res, step, op, options, acc)
 		)
 		.then(() => acc)
 }
@@ -149,12 +153,29 @@ function disableSpecsFile(op, options) {
 
 function requireSpecsFile(op, options) {
 	const fileInfo = fileUtil.enableFile(op.id, op, 'specs', options)
-	try {
-		return util.parseFileContents(fs.readFileSync(fileInfo.path), fileInfo.path)
-	} catch(e) {
-		if (e.name === 'YAMLException') throw e
-		return {}
+	const data = getJsonFile(fileInfo.path)
+	return resolveImports(data)
+}
+
+function resolveImports(root) {
+	let imports = (root.imports || []).slice()
+	delete root.imports
+	const map = new Map()
+	const results = []
+	while (imports.length) {
+		const p = imports.shift()
+		if (!map.has(p)) {
+			const data = getJsonFile(p)
+			map.set(p, data)
+			results.push(data)
+			if (data.imports) {
+				imports = imports.concat(data.imports)
+				delete data.imports
+			}
+		}
 	}
+	results.forEach(value => Object.assign(root, value))
+	return root
 }
 
 function getSpecInfo(id) {
@@ -201,13 +222,22 @@ function populateProperties(source, acc, options) {
 		} else {
 			const TOKEN_REGEX = /\$\{((step\[\d+\]|fixtures)[\w\[\d\]\.]+)\}/g
 			let tokenMatch = source.match(TOKEN_REGEX)
-			while (tokenMatch) {
-				source = tokenMatch.reduce((str, token) => {
-					const path = token.slice(2, -1)
-					const value = parseProperty(path.split('.'), stepAcc)
-					return str.split(token).join(value)
-				}, source)
-				tokenMatch = source.match(TOKEN_REGEX)
+			if (tokenMatch) {
+				// if the token isn't nested in a string then we return the raw value
+				if (tokenMatch.length === 1 && tokenMatch[0] === source) {
+					const path = tokenMatch[0].slice(2, -1)
+					source = parseProperty(path.split('.'), stepAcc)
+				} else {
+					// otherwise replace each token in the string
+					while (tokenMatch) {
+						source = tokenMatch.reduce((str, token) => {
+							const path = token.slice(2, -1)
+							const value = parseProperty(path.split('.'), stepAcc)
+							return str.split(token).join(value)
+						}, source)
+						tokenMatch = source.match(TOKEN_REGEX)
+					}
+				}
 			}
 		}
 	}
@@ -234,21 +264,21 @@ function parseProperty(segments, source) {
 	}
 }
 
-function validateRequest(req, spec, op, verbose) {
+function validateRequest(req, spec, op) {
 	const groupSchema = op.paramGroupSchemas
 	swaggerSpec.PARAM_GROUPS.forEach(groupId => {
 		if (groupSchema[groupId]) {
 			try {
 				jsonSchema.validate(spec.request[groupId], groupSchema[groupId], { throwError: true })
 			} catch(e) {
-				if (verbose) e.message = `${e.toString()}\Request: ${JSON.stringify(req, null, 2)}`
+				e.message = `${e.toString()}\n${prettyJson('Request:', req)}`
 				throw e
 			}
 		}
 	})
 }
 
-function validateResponse(req, res, spec, op, options, acc, verbose) {
+function validateResponse(req, res, spec, op, options, acc) {
 	const responseSpec = getResponseSpec(spec, acc, options)
 	const responseSchema = op.responseSchemas[responseSpec.status]
 
@@ -261,7 +291,7 @@ function validateResponse(req, res, spec, op, options, acc, verbose) {
 		validateContentType(res, op)
 		updateFixtures(responseSpec, options)
 	} catch (e) {
-		if (verbose) e.message = `${e.toString()}\nRequest: ${JSON.stringify(req, null, 2)}\nResponse: ${JSON.stringify(res, null, 2)}`
+		e.message = `${e.toString()}\n${prettyJson('Request:', req)}\n${prettyJson('Response:', res)}`
 		throw e
 	}
 	return res
@@ -321,4 +351,18 @@ function updateFixtures(responseSpec, options) {
 	if (responseSpec.fixtures) {
 		Object.assign(options.fixtures, responseSpec.fixtures)
 	}
+}
+
+function getJsonFile(jsonPath) {
+	if (!jsonPath || typeof jsonPath === 'object') return jsonPath || {}
+	const p = path.resolve(jsonPath)
+	if (!p || !util.existsSync(p)) return {}
+	const contents = fs.readFileSync(p, 'utf8')
+	return util.parseFileContents(contents, p) || {}
+}
+
+function prettyJson(title, obj) {
+	const MAX_LINES = 400
+	const lines = JSON.stringify(obj, null, 2).split('\n').slice(0, MAX_LINES).join('\n')
+	return `${title}\n${lines}`
 }

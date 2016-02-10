@@ -52,7 +52,7 @@ function getPathParams(req, operation) {
 	// as restify has the option to merge body and query params in here too.
 	// This forces us to pull out just the ones defined in the swagger spec.
 	// Note that this means we can't later determine if the client has sent
-	// extra/invalid path parameters so validation around this will not run.
+	// extra path parameters so validation around this is not possible.
 
 	return operation.parameters
 		.filter(op => op.in === 'path')

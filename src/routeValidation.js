@@ -42,8 +42,25 @@ function validateParam(groupId, groupSchema, groupData) {
 	groupData = parameters.formatGroupData(groupSchema, groupData)
 
 	let result = jsonSchema.validate(groupData, groupSchema, { propertyName: groupId })
+	result = checkForMissingPathParams(groupId, groupSchema, groupData, result)
 	result = checkForInvalidPathSegmentName(groupId, groupSchema, groupData, result)
 	result = removeErrorsForAllowedEmptyValue(groupId, groupSchema, groupData, result)
+	return result
+}
+
+function checkForMissingPathParams(groupId, schema, data, result) {
+	if (groupId !== 'path' || !schema.properties) return result
+	data = data || {}
+	Object.keys(schema.properties).forEach(prop => {
+		// if the value doesn't exist or appears as an un-replaced Swagger
+		// path token then assume the path param has not been provided
+		if (!data[prop] || data[prop].match(new RegExp(`^{${prop}}$`))) {
+			const propPath = result.propertyPath
+			result.propertyPath += `.${prop}`
+			result.addError({ message: `is required`, name: prop })
+			result.propertyPath = propPath
+		}
+	})
 	return result
 }
 
