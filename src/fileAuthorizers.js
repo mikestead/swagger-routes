@@ -9,7 +9,8 @@ exports.getTemplateView = getTemplateView
 
 
 function enableAuthorizer(schemeId, securityScheme, options) {
-  return fileUtil.enableFile(schemeId, Object.assign({ id: schemeId }, securityScheme), 'authorizers', options)
+  const data = Object.assign({ id: schemeId }, securityScheme)
+  return fileUtil.enableFile(schemeId, data, 'authorizers', null, options)
 }
 
 function disableAuthorizer(schemeId, options) {

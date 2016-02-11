@@ -4,6 +4,7 @@ const path = require('path')
 const fileUtil = require('./fileUtil')
 const fileHandlers = require('./fileHandlers')
 const fileAuthorizers = require('./fileAuthorizers')
+const fileSpecs = require('./fileSpecs')
 
 const DEFAULT_EXPRESS_OPTIONS = {
   'case sensitive routing': false,
@@ -81,7 +82,7 @@ function applyDefaultSpecOptions(options) {
   const specs = expandFlattenedOption('specs', options)
   options = Object.assign({}, DEFAULT_SPEC_OPTIONS, options)
   options.specs = Object.assign({}, DEFAULT_SPEC_OPTIONS.specs, specs)
-  options = applyTemplateOptions('specs', fileHandlers, options)
+  options = applyTemplateOptions('specs', fileSpecs, options)
   return options
 }
 

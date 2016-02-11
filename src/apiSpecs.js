@@ -1,7 +1,7 @@
 'use strict'
 
 const Options = require('./options')
-const fileUtil = require('./fileUtil')
+const fileSpecs = require('./fileSpecs')
 const util = require('./util')
 const fs = require('fs')
 const path = require('path')
@@ -57,7 +57,7 @@ function describeApi(api, operations, options) {
       })
     })
     after(done => {
-      fileUtil.disableOldOperationFiles(operations, 'specs', options)
+      fileSpecs.disableOldSpecs(operations, options)
       options.stopServer(done)
     })
     describeOperations(operations, options)
@@ -148,11 +148,11 @@ function getSpecs(op, options) {
 }
 
 function disableSpecsFile(op, options) {
-  return fileUtil.disableFile(op.id, 'specs', options)
+  return fileSpecs.disableSpec(op, options)
 }
 
 function requireSpecsFile(op, options) {
-  const fileInfo = fileUtil.enableFile(op.id, op, 'specs', options)
+  const fileInfo = fileSpecs.enableSpec(op, options)
   const data = getJsonFile(fileInfo.path)
   return resolveImports(data)
 }

@@ -45,6 +45,7 @@ server.listen(8080)
 - `docsPath`: url path to serve your swagger api json. Defaults to `/api-docs`.
 - `handlers`: directory where your handler files reside. Defaults to `./handlers`. Can alternatively be a function to return a handler function given an operation.
 - `authorizers`: directory where your authorizer files reside. Defaults to `./security`. Can alternatively be a function to return an authorizer middleware given a swagger security scheme.
+- `syncHeaders`: Keeps your generated handler doc headers in sync with your swagger spec. Default is false.
 
 ### Operation Handlers
 
@@ -96,6 +97,11 @@ it should be poulated with handler stubs for each operation defined in your Swag
 Each time you start your app `swaggerRoutes` will see if you have any missing operation handlers and generate
 stub handler for any which are. If a handler file exists it won't be touched, i.e. this is non-destructive so you are free
 to edit them.
+
+Note that if you turn on the `syncHeaders` option then the header of your handler files _will_ be 
+updated each run based on your Swagger api. This keeps your handler documentation up to date so 
+you can easily see what parameters accompany a request for a given operation. It will overwrite
+any edits you make to the header so only turn on if you don't plan on manually editing them.
 
 When a re-run finds handlers no longer in use they will be renamed with an `_` prefix, so
 `listPets.js` would become `_listPets.js`. This allows you to identify handlers no longer in use

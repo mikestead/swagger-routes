@@ -2,45 +2,45 @@
 
 const expect = require('expect')
 const del = require('del')
-const fs = require('fs')
-const fileHandlers = require('../src/fileHandlers')
+const fileSpecs = require('../src/fileSpecs')
 const swaggerSpec = require('../src/swaggerSpec')
 const util = require('../src/util')
-const applyDefaultOptions = require('../src/options').applyDefaultOptions
+const fs = require('fs')
+const applyDefaultSpecOptions = require('../src/options').applyDefaultSpecOptions
 
 const api = swaggerSpec.getSpecSync('./test/_fixture/petstore.yml')
 const operations = swaggerSpec.getAllOperations(api)
 const operationId = 'listPets'
 const listPetsOp = operations.find(op => op.id === operationId)
-const options = applyDefaultOptions({
+const options = applyDefaultSpecOptions({
   api,
-  handlers: './bin/handler'
+  specs: './bin/specs'
 })
 
-describe('fileHandlers', () => {
-  afterEach(() => del(options.handlers.path))
+describe('fileSpecs', () => {
+  afterEach(() => del(options.specs.path))
 
-  describe('enableHandler', () => {
-    it('should generate a route handler file based on operation id', () => {
-      const fileInfo = fileHandlers.enableHandler(listPetsOp, options)
+  describe('enableSpec', () => {
+    it('should generate a spec file based on operation id', () => {
+      const fileInfo = fileSpecs.enableSpec(listPetsOp, options)
 
       expect(fileInfo.gen).toBe(true)
       expect(fileInfo.old).toBe(false)
       expect(util.existsSync(fileInfo.path)).toNotBe(false)
     })
 
-    it('should NOT re-generate existing handler files', () => {
-      const fileInfoA = fileHandlers.enableHandler(listPetsOp, options)
-      const fileInfoB = fileHandlers.enableHandler(listPetsOp, options)
+    it('should NOT re-generate existing spec files', () => {
+      const fileInfoA = fileSpecs.enableSpec(listPetsOp, options)
+      const fileInfoB = fileSpecs.enableSpec(listPetsOp, options)
 
       expect(fileInfoA.gen).toBe(true)
       expect(fileInfoB.gen).toBe(false)
     })
 
-    it('should renew old handler which is in use again', () => {
-      fileHandlers.enableHandler(listPetsOp, options)
-      fileHandlers.disableHandler(listPetsOp, options)
-      const fileInfo = fileHandlers.enableHandler(listPetsOp, options)
+    it('should renew old spec which is in use again', () => {
+      fileSpecs.enableSpec(listPetsOp, options)
+      fileSpecs.disableSpec(listPetsOp, options)
+      const fileInfo = fileSpecs.enableSpec(listPetsOp, options)
 
       expect(fileInfo.gen).toBe(false)
       expect(fileInfo.old).toBe(false)
@@ -49,12 +49,12 @@ describe('fileHandlers', () => {
 
     it('should update header docs when swagger spec changes', () => {
       const options2 = Object.assign({ syncHeaders: true }, options)
-      const fileInfo = fileHandlers.enableHandler(listPetsOp, options2)
+      const fileInfo = fileSpecs.enableSpec(listPetsOp, options2)
       const contents1 = fs.readFileSync(fileInfo.path, 'utf8') + '\nEDIT\n'
 
       fs.writeFileSync(fileInfo.path, contents1)
       const listPetsOp2 = Object.assign({}, listPetsOp, { summary: listPetsOp.summary + 'NEW' })
-      fileHandlers.enableHandler(listPetsOp2, options2)
+      fileSpecs.enableSpec(listPetsOp2, options2)
 
       const expected = contents1.split(listPetsOp.summary).join(`${listPetsOp.summary}NEW`)
       const contents2 = fs.readFileSync(fileInfo.path, 'utf8')
@@ -63,10 +63,10 @@ describe('fileHandlers', () => {
     })
   })
 
-  describe('disableHandler', () => {
-    it('should prefix underscore to handler files no longer in use', () => {
-      const fileInfoA = fileHandlers.enableHandler(listPetsOp, options)
-      const fileInfoB = fileHandlers.disableHandler(listPetsOp, options)
+  describe('disableSpec', () => {
+    it('should prefix underscore to spec files no longer in use', () => {
+      const fileInfoA = fileSpecs.enableSpec(listPetsOp, options)
+      const fileInfoB = fileSpecs.disableSpec(listPetsOp, options)
 
       expect(fileInfoA.gen).toBe(true)
       expect(fileInfoA.old).toBe(false)
@@ -78,11 +78,11 @@ describe('fileHandlers', () => {
     })
   })
 
-  describe('disableOldHandlers', () => {
-    it('should disable handlers for operations which no longer exist', () => {
+  describe('disableOldSpecs', () => {
+    it('should disable specs for operations which no longer exist', () => {
       const listPetsOp2 = Object.assign({}, listPetsOp, { id: `${operationId}2` })
-      fileHandlers.enableHandler(listPetsOp2, options)
-      const fileInfos = fileHandlers.disableOldHandlers(operations, options)
+      fileSpecs.enableSpec(listPetsOp2, options)
+      const fileInfos = fileSpecs.disableOldSpecs(operations, options)
       const fileInfo = fileInfos[0]
 
       expect(fileInfo.gen).toBe(false)
