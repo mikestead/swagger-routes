@@ -102,7 +102,6 @@ function reduceFailures(master, failure) {
 }
 
 function formatFailure(failure) {
-  failure.errors = failure.errors.filter(err => err.property.indexOf('.') !== -1)
   failure.errors.forEach(err => err.message = `${err.property} ${err.message}`)
   return failure
 }

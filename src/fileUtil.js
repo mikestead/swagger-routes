@@ -19,7 +19,7 @@ exports.fileInfo = fileInfo
 
 function enableFile(id, data, type, headerLineRegex, options) {
   const fileInfo = _enableFile(id, data, type, options)
-  if (options.syncHeaders && !fileInfo.gen && !!headerLineRegex) {
+  if (options.maintainHeaders && !fileInfo.gen && !!headerLineRegex) {
     updateHeader(fileInfo, data, type, headerLineRegex, options)
   }
   return fileInfo
@@ -160,15 +160,19 @@ function formatParamPropertyDoc(name, info) {
  */
 function updateHeader(fileInfo, data, type, headerLineRegex, options) {
   const contents = fs.readFileSync(fileInfo.path, 'utf8') || ''
-  const bodyLines = contents.split('\n')
+  const body = contents.split('\n')
   // assumes all comments at top of template are the header block
-  while (bodyLines.length && bodyLines[0].trim().match(headerLineRegex)) bodyLines.shift()
+
+  const preheader = []
+  while (body.length && !body[0].trim().match(headerLineRegex)) preheader.push(body.shift())
+  while (body.length && body[0].trim().match(headerLineRegex)) body.shift()
+
   const template = renderTemplate(data, type, options)
-  const headerLines = []
+  const header = []
   for (let hline of template.split('\n')) {
     if (!hline.trim().match(headerLineRegex)) break
-    else headerLines.push(hline)
+    else header.push(hline)
   }
-  const newContents = headerLines.concat(bodyLines).join('\n')
+  const newContents = preheader.concat(header).concat(body).join('\n')
   fs.writeFileSync(fileInfo.path, newContents)
 }

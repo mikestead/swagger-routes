@@ -45,7 +45,7 @@ server.listen(8080)
 - `docsPath`: url path to serve your swagger api json. Defaults to `/api-docs`.
 - `handlers`: directory where your handler files reside. Defaults to `./handlers`. Can alternatively be a function to return a handler function given an operation.
 - `authorizers`: directory where your authorizer files reside. Defaults to `./security`. Can alternatively be a function to return an authorizer middleware given a swagger security scheme.
-- `syncHeaders`: Keeps your generated handler doc headers in sync with your swagger spec. Default is false.
+- `maintainHeaders`: Keeps your generated handler doc headers in sync with your Swagger api. Default is false.
 
 ### Operation Handlers
 

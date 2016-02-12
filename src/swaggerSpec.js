@@ -112,24 +112,33 @@ function getOperationProperty(prop, pathInfo, spec) {
   return (pathInfo && pathInfo[prop]) ? pathInfo[prop] : spec[prop]
 }
 
-function createParamGroupSchemas(parameters, spec) {
+function createParamGroupSchemas(parameters) {
   return PARAM_GROUPS
     .map(loc => {
       const params = parameters.filter(param => param.in === loc)
-      return { 'in': loc, schema: createParamsSchema(params, spec) }
+      return { 'in': loc, schema: createParamsSchema(params, loc) }
     })
-    .filter(param => Object.keys(param.schema.properties).length)
+    .filter(param => Object.keys(param.schema.properties || {}).length)
     .reduce((map, param) => {
       map[param.in] = param.schema
       return map
     }, {})
 }
 
-function createParamsSchema(params) {
+function createParamsSchema(params, loc) {
+  if (loc === PARAM_GROUP.BODY) {
+    const param = params.shift() // there can only be a single body param
+    if (param) {
+      param.name = 'body' // using a consistent name helps with error reporting
+      if (param.schema) return param.schema
+    }
+  }
   return {
     type: 'object',
     properties:  params.reduce((props, param) => {
-      props[param.name] = param = Object.assign({}, param)
+      const p = Object.assign({}, param)
+      delete p.required
+      props[param.name] = p
       return props
     }, {}),
     required: params
