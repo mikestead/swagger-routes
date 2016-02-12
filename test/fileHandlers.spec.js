@@ -48,7 +48,7 @@ describe('fileHandlers', () => {
     })
 
     it('should update header docs when swagger spec changes', () => {
-      const options2 = Object.assign({ syncHeaders: true }, options)
+      const options2 = Object.assign({ maintainHeaders: true }, options)
       const fileInfo = fileHandlers.enableHandler(listPetsOp, options2)
       const contents1 = fs.readFileSync(fileInfo.path, 'utf8') + '\nEDIT\n'
 

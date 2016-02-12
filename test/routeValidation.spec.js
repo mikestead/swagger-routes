@@ -57,7 +57,7 @@ function newSpec(template, param) {
   return util.createPathOperation(method, info, {}, {})
 }
 
-describe('validation', () => {
+describe('routeValidation', () => {
   describe('validateRequest', () => {
     const validateRequest = routeValidation.validateRequest
 
@@ -67,7 +67,7 @@ describe('validation', () => {
 
       expect(failure).toExist()
       expect(failure.errors.length).toBe(1)
-      expect(failure.errors[0].message).toBe('path.STRING is required')
+      expect(failure.errors[0].message).toBe('path requires property "STRING"')
     })
 
     it('should allow params which are not required to be missing', () => {
