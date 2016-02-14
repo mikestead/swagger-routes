@@ -6,6 +6,7 @@ const util = require('./util')
 const fs = require('fs')
 const path = require('path')
 const assert = require('assert')
+const expect = require('expect')
 const jsonSchema = require('jsonschema')
 const url = require('url')
 const request = require('axios')
@@ -289,6 +290,7 @@ function validateResponse(req, res, spec, op, options, acc) {
     validateHeaders(res, responseSchema.headersSchema, responseSpec)
     validateBody(res, responseSchema.bodySchema, responseSpec)
     validateContentType(res, op)
+    validateExpectations(res, responseSpec)
     updateFixtures(responseSpec, options)
   } catch (e) {
     e.message = `${e.toString()}\n${prettyJson('Request:', req)}\n${prettyJson('Response:', res)}`
@@ -336,6 +338,71 @@ function validateBody(res, bodySchema, responseSpec) {
 function validateContentType(res, op) {
   const contentType = res.headers['content-type']
   assert.notEqual(op.produces.indexOf(contentType), -1, `Response content type '${contentType}' was not expected`)
+}
+
+function validateExpectations(res, responseSpec) {
+  if (!responseSpec.expect) return
+
+  //[ 'body.message is query requires property "term"',
+  //  'body.code greater than 3',
+  //  'body.code less than 3',
+  //  'body.list has message',
+  //  'body.list length 3',
+  //  'body.list exists',
+  //  'body.list is null',
+  //  'header has content-type' ]
+  const operators = [
+    { name: ['to be greater than or equal to', '>=', 'gte'], op: 'toBeGreaterThanOrEqualTo'},
+    { name: ['to be less than or equal to', '<=', 'lte'], op: 'toBeLessThanOrEqualTo' },
+    { name: ['to be greater than', '>', 'gt'], op: 'toBeGreaterThan'},
+    { name: ['to be less than', '<', 'lt'], op: 'toBeLessThan'},
+    { name: ['to include', 'includes', 'contains'], op: 'toInclude'},
+    { name: ['to exclude', 'excludes'], op: 'toExclude'},
+    { name: ['to equal', 'equals', '===', '=='], op: 'toEqual'},
+    { name: ['to exist', 'exists'], op: 'toExist'},
+    { name: ['to match', 'matches'], op: 'toMatch'},
+    { name: ['to be', 'same as'], op: 'toBe'}
+  ]
+
+  function findOperator(operators, statement) {
+    statement = statement.toLowerCase()
+    for (let operator of operators) {
+      for (let name of operator.name) {
+        if (statement.match(new RegExp(`^${name}( |$)`))) {
+          return operator.op
+        }
+      }
+    }
+    return null
+  }
+
+  const swaggerRes = {
+    status: res.status,
+    header: res.headers,
+    body: res.data
+  }
+
+  responseSpec.expect.forEach(expectation => {
+    if (typeof expectation === 'object') {
+      const statement = Object.keys(expectation)[0]
+      const expected = expectation[statement]
+      const i = statement.indexOf(' ')
+      const objectPath = (i === -1) ? statement : statement.substr(0, i)
+      const rest = (i === -1) ? '' : statement.substr(i + 1)
+      const op = rest ? findOperator(operators, rest) : 'toEqual'
+      console.log(statement)
+      console.log(expected)
+      console.log(objectPath)
+      console.log(rest)
+      console.log(op)
+      const actual = parseProperty(objectPath.split('.'), swaggerRes)
+      console.log('actual', actual)
+
+      assert.ok(op, `Could not find matching expectation function for '${rest}'`)
+
+      console.log('success', expect(expected)[op](actual))
+    }
+  })
 }
 
 function expectsValidRequest(step) {
