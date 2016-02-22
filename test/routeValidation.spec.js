@@ -219,5 +219,14 @@ describe('routeValidation', () => {
       expect(failure).toExist()
       expect(failure.errors[0].message).toBe('query.ARRAY contains duplicate item')
     })
+
+    it('should apply default values before validation', () => {
+      const spec = newSpec(PARAM.INT, { default: 2 })
+      const req = newReq({})
+      const result = validateRequest(req, spec)
+
+      expect(result).toNotExist()
+      expect(req.query.INT).toBe(2)
+    })
   })
 })

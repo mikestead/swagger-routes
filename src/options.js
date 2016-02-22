@@ -83,6 +83,7 @@ function applyDefaultSpecOptions(options) {
   options = Object.assign({}, DEFAULT_SPEC_OPTIONS, options)
   options.specs = Object.assign({}, DEFAULT_SPEC_OPTIONS.specs, specs)
   options = applyTemplateOptions('specs', fileSpecs, options)
+  if (options.sortByStatus === undefined) options.sortByStatus = true
   return options
 }
 

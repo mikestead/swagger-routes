@@ -44,7 +44,7 @@ function applyDefaultValue(paramSchema, value) {
 }
 
 function getPathParams(req, operation) {
-  const params = req.params || {}
+  const params = req.params ? req.params : req.params = {}
   if (req.app) return params // express
 
   // restify
@@ -83,7 +83,7 @@ function getFormData(req) {
 }
 
 function castQueryParams(req, groupSchemas) {
-  const query = req.query || {}
+  const query = req.query ? req.query : req.query = {}
   const querySchema = groupSchemas.query || { properties: {} }
   Object.keys(query).forEach(key => {
     const propSchema = querySchema.properties[key]

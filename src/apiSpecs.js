@@ -33,6 +33,7 @@ module.exports = apiSpecs
  *  - `startServer(done)` function called before all tests where you can start your local server.
  *  - `stopServer(done)`function called after all tests where you can stop your local server.
  *  - `fixtures`: path to a yaml file with test fixtures.
+ *  - `sortByStatus`: Sort specs by response status, lowest to highest. Defaults to true.
  *  - `prefetch`: path to a yaml file with requests to prefetch values into fixtures before
  *                executing specs, e.g. auth tokens
  * @return {void}
@@ -86,14 +87,33 @@ function describeOperations(operations, options) {
 
 function describeOperationSpecs(op, operations, options) {
   const specs = getSpecs(op, options)
-  Object.keys(specs).forEach(id => {
-    const specInfo = getSpecInfo(id)
+  normalizeSpecs(specs, options).forEach(spec => {
+    const specInfo = getSpecInfo(spec.id)
     specInfo.it(specInfo.summary, () => {
-      const spec = specs[id]
-      const steps = Array.isArray(spec) ? spec : [ spec ]
-      return runSteps(steps, op, operations, specInfo, options)
+      return runSteps(spec.steps, op, operations, specInfo, options)
     })
   })
+}
+
+function normalizeSpecs(specs, options) {
+  const normSpecs = Object.keys(specs)
+    .map(id => {
+      const spec = specs[id]
+      const steps = Array.isArray(spec) ? spec : [ spec ]
+      steps.forEach(step => {
+        if (step.response && typeof step.response !== 'object') {
+          step.response = { status: step.response }
+        }
+      })
+      const lastStep = steps[steps.length - 1]
+      if (lastStep.response === undefined) throw new Error(`Missing response status for spec: '${id}`)
+      return { id, steps, lastStep }
+    })
+  
+  if (options.sortByStatus) {
+    normSpecs.sort((a, b) => a.lastStep.response.status - b.lastStep.response.status)
+  }
+  return normSpecs
 }
 
 function runSteps(steps, op, operations, specInfo, options) {
@@ -134,7 +154,7 @@ function runStep(step, op, specInfo, options, acc) {
     .then(
       res => validateResponse(req, res, step, op, options, acc),
       res => validateResponse(req, res, step, op, options, acc)
-    )
+  )
     .then(() => acc)
 }
 

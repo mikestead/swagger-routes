@@ -30,10 +30,10 @@ function validateRequest(req, operation) {
 
 function groupRequestData(req, operation, groupSchemas) {
   return {
-    header: req.headers || {},
+    header: req.headers ? req.headers : req.headers = {},
     path: parameters.getPathParams(req, operation),
     query: parameters.castQueryParams(req, groupSchemas),
-    body: req.body || {},
+    body: req.body ? req.body : req.body = {},
     formData: parameters.getFormData(req)
   }
 }
