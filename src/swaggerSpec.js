@@ -64,6 +64,8 @@ function applyDefaults(spec) {
 }
 
 function getAllOperations(spec) {
+  // we need to resolve refs so a deep copy is needed to avoid modifying the original
+  spec = JSON.parse(JSON.stringify(spec))
   return getPaths(spec)
     .reduce((ops, pathInfo) =>
       ops.concat(getPathOperations(pathInfo, spec)), [])
