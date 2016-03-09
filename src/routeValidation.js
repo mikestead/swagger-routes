@@ -40,7 +40,7 @@ function groupRequestData(req, operation, groupSchemas) {
 
 function validateParam(groupId, groupSchema, groupData) {
   groupData = parameters.formatGroupData(groupSchema, groupData)
-
+  groupData = Object.assign({}, groupData)
   let result = jsonSchema.validate(groupData, groupSchema, { propertyName: groupId })
   result = checkForMissingPathParams(groupId, groupSchema, groupData, result)
   result = checkForInvalidPathSegmentName(groupId, groupSchema, groupData, result)
