@@ -15,9 +15,10 @@ function buildHandlerStack(operation, authorizers, options) {
     } else if (typeof handler.middleware === 'function') {
       middleware = [ handler.middleware ]
     }
-    handler = handler.handler || handler[operation.id]
+    handler = handler.handler || handler.default || handler[operation.id]
   }
   if (handler && typeof handler === 'function') {
+    handler = wrapRequestHandler(handler)
     middleware = getMiddleware(middleware, operation, authorizers)
     return middleware.concat([ handler ])
   }
@@ -35,7 +36,10 @@ function getHandler(operation, options) {
 function requireHandler(operation, options) {
   const fileInfo = fileHandlers.enableHandler(operation, options)
   try { return require(fileInfo.path) }
-  catch(e) { return null }
+  catch(e) {
+    if (e.code === 'MODULE_NOT_FOUND') return null
+    else throw e
+  }
 }
 
 function getMiddleware(customMiddleware, operation, authorizers) {
@@ -48,4 +52,15 @@ function getMiddleware(customMiddleware, operation, authorizers) {
   if (validationCheck) middleware.push(validationCheck)
 
   return middleware
+}
+
+function wrapRequestHandler(func) {
+  return function errorCapture(req, res, next) {
+    try {
+      const result = func(req, res, next)
+      if (result && result.catch) result.catch(e => next(e))
+    } catch(e) {
+      next(e)
+    }
+  }
 }

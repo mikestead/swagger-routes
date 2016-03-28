@@ -10,6 +10,7 @@ const jsonSchema = require('jsonschema')
 const url = require('url')
 const request = require('axios')
 const swaggerSpec = require('./swaggerSpec')
+const expect = require('expect')
 
 const ONLY_SPEC_MARKER = '+'
 const ONLY_VERBOSE_SPEC_MARKER = 'v+'
@@ -55,11 +56,11 @@ function describeApi(api, operations, options) {
       options.startServer(e => {
         if (e) done(e)
         else prefetch(operations, options).then(() => done(), e => done(e))
-      })
+      }, options)
     })
     after(done => {
       fileSpecs.disableOldSpecs(operations, options)
-      options.stopServer(done)
+      options.stopServer(done, options)
     })
     describeOperations(operations, options)
   })
@@ -109,7 +110,7 @@ function normalizeSpecs(specs, options) {
       if (lastStep.response === undefined) throw new Error(`Missing response status for spec: '${id}`)
       return { id, steps, lastStep }
     })
-  
+
   if (options.sortByStatus) {
     normSpecs.sort((a, b) => a.lastStep.response.status - b.lastStep.response.status)
   }
@@ -308,6 +309,7 @@ function validateResponse(req, res, spec, op, options, acc) {
     validateStatus(res, responseSchema.id)
     validateHeaders(res, responseSchema.headersSchema, responseSpec)
     validateBody(res, responseSchema.bodySchema, responseSpec)
+    validateExpectations(responseSpec)
     validateContentType(res, op)
     updateFixtures(responseSpec, options)
   } catch (e) {
@@ -353,7 +355,20 @@ function validateBody(res, bodySchema, responseSpec) {
   }
 }
 
+function validateExpectations(responseSpec) {
+  if (responseSpec.expect) {
+    responseSpec.expect.forEach(expectation => {
+      const assertion = Object.keys(expectation)[0]
+      const args = expectation[assertion]
+      const scope = expect(args.shift())
+      scope[assertion].apply(scope, args)
+    })
+  }
+}
+
 function validateContentType(res, op) {
+  if (res.status === 204) return
+
   const contentType = res.headers['content-type']
   assert.notEqual(op.produces.indexOf(contentType), -1, `Response content type '${contentType}' was not expected`)
 }

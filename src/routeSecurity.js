@@ -21,6 +21,7 @@ function getAuthorizer(id, securityScheme, options) {
   if (typeof options.authorizers.create === 'function') authorizer = options.authorizers.create(id, securityScheme)
   if (authorizer) fileAuthorizers.disableAuthorizer(id, options)
   else authorizer = requireAuthorizer(id, securityScheme, options)
+  if (authorizer && authorizer.default) authorizer = authorizer.default
   return authorizer
 }
 
@@ -46,7 +47,12 @@ function createAuthCheck(operation, authorizers) {
           req.verifyScopes = function verifyScopes(scopes) {
             return verifyRequiredScopes(requiredScopes, scopes)
           }
-          authorizer(req, res, err => err ? reject(err) : resolve())
+          try {
+            const result = authorizer(req, res, err => err ? reject(err) : resolve())
+            if (result && result.catch) result.catch(e => reject(e))
+          } catch(e) {
+            reject(e)
+          }
         } else {
           // Unable to determine at this point if authorized but don't
           // have correct scope(s), or if authorization is required.
@@ -70,6 +76,7 @@ function verifyRequiredScopes(requiredScopes, scopes) {
   if (!hasRequiredScopes) {
     const e = new Error('Forbidden')
     e.statusCode = e.status = 403
+    e.requiredScopes = requiredScopes
     return e
   }
   return undefined

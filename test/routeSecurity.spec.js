@@ -65,7 +65,7 @@ describe('routeSecurity', () => {
         })
     })
 
-    it('should fail authorization if required security scope is missing', () => {
+    it.only('should fail authorization if required security scope is missing', () => {
       let error
       const authorizers = new Map()
       authorizers.set(schemeIdA, (req, res, next) => {
@@ -78,6 +78,7 @@ describe('routeSecurity', () => {
         .then(() => {
           expect(error).toExist()
           expect(error.status).toBe(403)
+          expect(error.requiredScopes).toEqual([ 'write:pets', 'read:pets' ])
         })
     })
 
