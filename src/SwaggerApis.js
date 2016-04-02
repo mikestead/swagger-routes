@@ -7,17 +7,25 @@
  */
 class SwaggerApis {
   constructor() {
-    this._apis = new Set()
+    this._apis = []
   }
 
   add(api) {
-    this._apis.add(api)
-    this._updateApiHost(api)
+    this._apis.push(api)
+    this._updateHost(api)
     return this
   }
 
+  atIndex(index) {
+    return this._apis[index]
+  }
+
+  last() {
+    return this._apis[this._apis.length - 1]
+  }
+
   get size() {
-    return this._apis.size
+    return this._apis.length
   }
 
   get host() {
@@ -26,17 +34,32 @@ class SwaggerApis {
 
   set host(value) {
     this._host = value
-    this._updateApiHosts()
+    this.updateApis()
   }
 
-  _updateApiHosts() {
+  get schemes() {
+    return this._schemes
+  }
+
+  set schemes(value) {
+    if (typeof value === 'string') value = [ value ]
+    this._schemes = value
+    this.updateApis()
+  }
+
+  updateApis() {
     for (let api of this._apis) {
-      this._updateApiHost(api)
+      this._updateHost(api)
+      this._updateSchemes(api)
     }
   }
 
-  _updateApiHost(api) {
+  _updateHost(api) {
     api.host = this.host || api.host
+  }
+
+  _updateSchemes(api) {
+    api.schemes = this.schemes || api.schemes
   }
 }
 
