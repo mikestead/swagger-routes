@@ -54,8 +54,13 @@ function getMiddleware(customMiddleware, operation, authorizers) {
   return middleware
 }
 
+/*
+Wrap primary handler and capture any errors, especially if returning a Promise as the 
+error will be lost otherwise. A Promise may be returned manually, or more often when 
+using async / await on a handler.
+*/
 function wrapRequestHandler(func) {
-  return function errorCapture(req, res, next) {
+  return function handler(req, res, next) {
     try {
       const result = func(req, res, next)
       if (result && result.catch) result.catch(e => next(e))

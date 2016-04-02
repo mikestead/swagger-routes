@@ -65,7 +65,7 @@ describe('routeSecurity', () => {
         })
     })
 
-    it.only('should fail authorization if required security scope is missing', () => {
+    it('should fail authorization if required security scope is missing', () => {
       let error
       const authorizers = new Map()
       authorizers.set(schemeIdA, (req, res, next) => {
