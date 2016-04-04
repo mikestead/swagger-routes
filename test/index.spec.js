@@ -69,6 +69,19 @@ describe('index', () => {
           verifyRoute(app, '/pets', [ 'middleware', 'validator', 'handler' ])
         })
 
+        it('should support post validation middleware', () => {
+          const options2 = Object.assign({}, options)
+          options2.handlers = {
+            create: () => ({
+              middleware: { action: function middleware() {}, validated: true },
+              handler: function handler() {}
+            })
+          }
+
+          addHandlers(app, options2)
+          verifyRoute(app, '/pets', [ 'validator', 'middleware', 'handler' ])
+        })
+
         it('should support handler multi-middleware', () => {
           const options2 = Object.assign({}, options)
           options2.handlers = {
@@ -83,6 +96,22 @@ describe('index', () => {
 
           addHandlers(app, options2)
           verifyRoute(app, '/pets', [ 'middleware1', 'middleware2', 'validator', 'handler' ])
+        })
+
+        it('should support pre and post validation middleware', () => {
+          const options2 = Object.assign({}, options)
+          options2.handlers = {
+            create: () => ({
+              middleware: [
+                function middlewarePre() {},
+                { action: function middlewarePost() {}, validated: true }
+              ],
+              handler: function handler() {}
+            })
+          }
+
+          addHandlers(app, options2)
+          verifyRoute(app, '/pets', [ 'middlewarePre', 'validator', 'middlewarePost', 'handler' ])
         })
 
         it('should add auth middleware to secure routes', () => {

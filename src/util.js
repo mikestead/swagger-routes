@@ -17,6 +17,8 @@ exports.renameFile = renameFile
 exports.readDir = readDir
 exports.parseFileContents = parseFileContents
 exports.resolveSchemaRefs = resolveSchemaRefs
+exports.isFunc = isFunc
+exports.isObj = isObj
 
 function exists(filePath) {
   return new Promise((res, rej) =>
@@ -118,4 +120,12 @@ function resolveSchemaRef(ref, lookup) {
     assert.ok(value, `Invalid schema reference: ${ref}`)
   }
   return value
+}
+
+function isFunc(f) {
+  return !!f && typeof f === 'function'
+}
+
+function isObj(o) {
+  return !!o && typeof o === 'object'
 }
