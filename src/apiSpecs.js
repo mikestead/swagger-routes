@@ -369,7 +369,8 @@ function validateExpectations(responseSpec) {
 function validateContentType(res, op) {
   if (res.status === 204) return
 
-  const contentType = res.headers['content-type']
+  let contentType = res.headers['content-type'] || ''
+  contentType = contentType.split(';')[0].trim()
   assert.notEqual(op.produces.indexOf(contentType), -1, `Response content type '${contentType}' was not expected`)
 }
 
