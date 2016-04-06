@@ -28,7 +28,10 @@ function getAuthorizer(id, securityScheme, options) {
 function requireAuthorizer(id, securityScheme, options) {
   const fileInfo = fileAuthorizers.enableAuthorizer(id, securityScheme, options)
   try { return require(fileInfo.path) }
-  catch(e) { return null }
+  catch(e) {
+    if (e.code === 'MODULE_NOT_FOUND') return null
+    else throw e
+  }
 }
 
 function createAuthCheck(operation, authorizers) {
