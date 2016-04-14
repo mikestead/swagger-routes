@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "axios": "^0.9.1",
+    "expect": "^1.13.0",
     "js-yaml": "^3.5.4",
     "jsonschema": "1.1.0",
     "mkdirp": "^0.5.1",
@@ -48,7 +49,6 @@
     "concat-stream": "^1.5.1",
     "eslint": "^1.10.3",
     "eslint-config-rackt": "^1.1.1",
-    "expect": "^1.13.0",
     "express": "^4.13.4",
     "form-data": "^0.2.0",
     "mocha": "^2.3.4",
