@@ -35,7 +35,8 @@ function requireAuthorizer(id, securityScheme, options) {
 }
 
 function createAuthCheck(operation, authorizers) {
-  const security = operation.security || []
+  let security = operation.security || []
+  if (security && !Array.isArray(security)) security = [ security ]
   if (!security.length) return null
 
   return function authorize(req, res, next) {
