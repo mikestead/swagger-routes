@@ -348,7 +348,13 @@ function validateHeaders(res, headersSchema, responseSpec) {
 }
 function validateBody(res, bodySchema, responseSpec) {
   if (bodySchema) {
-    jsonSchema.validate(res.data, bodySchema, { throwError: true })
+    // We can't use `throwError: true` because of a bug around anyOf and oneOf
+    // See https://github.com/tdegrunt/jsonschema/issues/119
+    // Instead we capture all errors and then throw the first one found
+    const result = jsonSchema.validate(res.data, bodySchema, { throwError: false })
+    if (result && result.errors.length) {
+      throw result.errors[0]
+    }
   }
   if (responseSpec.body) {
     assert.deepEqual(res.data, responseSpec.body)
