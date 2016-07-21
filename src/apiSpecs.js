@@ -41,6 +41,9 @@ module.exports = apiSpecs
  */
 function apiSpecs(options) {
   options = Options.applyDefaultSpecOptions(options)
+  if (options.headers) {
+    request.defaults.headers.common = Object.assign({}, request.defaults.headers.common, options.headers)
+  }
   const api = swaggerSpec.getSpecSync(options.api)
   const operations = swaggerSpec.getAllOperations(api)
   options.fixtures = getJsonFile(options.fixtures)
