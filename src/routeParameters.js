@@ -21,6 +21,7 @@ function formatGroupData(groupSchema, groupData) {
     const paramSchema = groupSchema.properties[name]
     let val = groupData[name]
     val = parseCollectionFormat(paramSchema, val)
+    val = parseBoolean(paramSchema, val)
     val = applyDefaultValue(paramSchema, val)
     groupData[name] = val
   })
@@ -30,6 +31,22 @@ function formatGroupData(groupSchema, groupData) {
 function parseCollectionFormat(paramSchema, value) {
   if (paramSchema.type === 'array' && typeof value === 'string') {
     return stringValueToArray(value, paramSchema.collectionFormat || 'csv')
+  }
+  return value
+}
+
+function parseBoolean(paramSchema, value){
+  if (paramSchema.type === 'boolean') {
+    switch(`${value}`.toLowerCase().trim()) {
+      case "true":
+      case "1":
+      case "on":
+      case "yes":
+      case "y":
+        return true;
+      default:
+        return false;
+    }
   }
   return value
 }

@@ -5,6 +5,38 @@ const routeParameters = require('../src/routeParameters')
 
 describe('routeParameters', () => {
   describe('formatGroupData', () => {
+    it('should convert string to boolean', () => {
+      const props = {
+        properties: {
+          BOOLEAN: {
+            type: 'boolean',
+            default: 'foo'
+          }
+        }
+      }
+      let groupData = routeParameters.formatGroupData(props, { BOOLEAN: 'true' })
+      expect(groupData.BOOLEAN).toBe(true)
+      groupData = routeParameters.formatGroupData(props, { BOOLEAN: 'yes' })
+      expect(groupData.BOOLEAN).toBe(true)
+      groupData = routeParameters.formatGroupData(props, { BOOLEAN: 'y' })
+      expect(groupData.BOOLEAN).toBe(true)
+      groupData = routeParameters.formatGroupData(props, { BOOLEAN: '1' })
+      expect(groupData.BOOLEAN).toBe(true)
+      groupData = routeParameters.formatGroupData(props, { BOOLEAN: 'TRUE' })
+      expect(groupData.BOOLEAN).toBe(true)
+
+      groupData = routeParameters.formatGroupData(props, { BOOLEAN: 'false' })
+      expect(groupData.BOOLEAN).toBe(false)
+      groupData = routeParameters.formatGroupData(props, { BOOLEAN: 'no' })
+      expect(groupData.BOOLEAN).toBe(false)
+      groupData = routeParameters.formatGroupData(props, { BOOLEAN: 'n' })
+      expect(groupData.BOOLEAN).toBe(false)
+      groupData = routeParameters.formatGroupData(props, { BOOLEAN: '0' })
+      expect(groupData.BOOLEAN).toBe(false)
+      groupData = routeParameters.formatGroupData(props, { BOOLEAN: 'FALSE' })
+      expect(groupData.BOOLEAN).toBe(false)
+    })
+
     it('should apply default value to undefined parameter', () => {
       const groupData = routeParameters.formatGroupData({
         properties: {
