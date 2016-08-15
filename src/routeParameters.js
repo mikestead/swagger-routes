@@ -35,17 +35,17 @@ function parseCollectionFormat(paramSchema, value) {
   return value
 }
 
-function parseBoolean(paramSchema, value){
+function parseBoolean(paramSchema, value) {
   if (paramSchema.type === 'boolean') {
     switch(`${value}`.toLowerCase().trim()) {
-      case "true":
-      case "1":
-      case "on":
-      case "yes":
-      case "y":
-        return true;
+      case 'true':
+      case '1':
+      case 'on':
+      case 'yes':
+      case 'y':
+        return true
       default:
-        return false;
+        return false
     }
   }
   return value
