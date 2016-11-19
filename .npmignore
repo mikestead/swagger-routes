@@ -1,0 +1,10 @@
+.idea
+yaml-fragment.iml
+node_modules
+npm-debug.log
+bin
+yarn.lock
+.travis.yml
+.eslintrc
+test
+example

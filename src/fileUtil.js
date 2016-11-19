@@ -112,6 +112,8 @@ function getDefaultTemplateView(operation, commentMarker) {
   const view = Object.assign({}, operation)
   const groupsMap = operation.paramGroupSchemas
 
+  // Make sure we always use fwd slash
+  view.fullPath = (view.fullPath || '').split(path.sep).join('/')
   view.method = view.method.toUpperCase()
   view.summary = (view.summary || view.id).split('\n').join(`\n${commentMarker}`)
   view.params = Object.keys(groupsMap)
