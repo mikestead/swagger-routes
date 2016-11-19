@@ -98,6 +98,7 @@ function createPathOperation(method, pathInfo, pathsXProps, spec) {
   if (!operationInfo.responses) operationInfo.responses = {}
   const operation = Object.assign({
     id: operationInfo.operationId,
+    pkg: getPackageName(operationInfo),
     path: pathInfo.path,
     fullPath: path.normalize(`/${spec.basePath}/${pathInfo.path}`),
     consumes: getOperationProperty('consumes', operationInfo, spec),
@@ -170,4 +171,14 @@ function createResponseHeadersSchema(headers) {
     required: Object.keys(headers)
       .filter(name => headers[name].required)
   }
+}
+
+function getPackageName(op) {
+  if (!op.tags || !op.tags[0]) return undefined
+  
+  let pkg = op.tags[0].replace(/[^\w$]/g, '')
+  if (/^[^a-zA-Z_$]/.test(pkg)) {
+    pkg = `$${pkg}`
+  }
+  return pkg
 }

@@ -56,8 +56,10 @@ provide a factory function which creates a handler function given an operation.
 
 Using individual handler files is a good choice if each handler needs unique logic to deal with an operation request.
 
-A handler file must be named after the Swagger operation it handles e.g. `listPets.js`, and all 
-handler files must reside in the same directory.
+A handler file must be named after the Swagger operation it handles e.g. `listPets.js`.
+
+All handler files must reside in the same directory, unless the `group` option is enabled, 
+in which case the handler file should sit under a folder of its primary tag name (see Generating Handler Files below).
 
 ##### File Contents
 
@@ -109,6 +111,9 @@ and remove / rename them if you wish.
 
 If you later enable a handler again in your spec and re-run, then the underscore will be removed.
 
+Note that this feature of prefixing removed handlers is only currently supported when the `group`
+options is not enabled.
+
 The default template is defined [here](https://github.com/mikestead/swagger-routes/blob/master/template/handler.mustache) but you can supply your own by expanding the `handlers` option e.g.
 
 ```javascript
@@ -119,7 +124,8 @@ The default template is defined [here](https://github.com/mikestead/swagger-rout
     	template: './template/handler.mustache', // can also be set with a loaded template
     	getTemplateView: operation => operation, // define the object to be rendered by your template
     	create: operation => (req, res) => {}, // see Handler Factory section for details
-    	generate: true // hander file generation on by default
+    	generate: true, // hander file generation on by default
+        group: false // when true each handler file will be placed under a directory named after its primary tag
     }
 }
 ```

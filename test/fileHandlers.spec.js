@@ -29,6 +29,22 @@ describe('fileHandlers', () => {
       expect(util.existsSync(fileInfo.path)).toNotBe(false)
     })
 
+    it('should generate a route handler file based on operation id and group', () => {
+      const options = applyDefaultOptions({
+        api,
+        handlers: {
+          path: './bin/handler',
+          group: true
+        }
+      })
+      const fileInfo = fileHandlers.enableHandler(listPetsOp, options)
+
+      expect(fileInfo.gen).toBe(true)
+      expect(fileInfo.old).toBe(false)
+      expect(fileInfo.path).toMatch(/\/bin\/handler\/pets\/listPets.js$/)
+      expect(util.existsSync(fileInfo.path)).toNotBe(false)
+    })
+
     it('should NOT re-generate existing handler files', () => {
       const fileInfoA = fileHandlers.enableHandler(listPetsOp, options)
       const fileInfoB = fileHandlers.enableHandler(listPetsOp, options)
