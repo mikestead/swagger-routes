@@ -8,3 +8,4 @@ yarn.lock
 .eslintrc
 test
 example
+.npmignore

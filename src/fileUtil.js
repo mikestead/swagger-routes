@@ -25,10 +25,10 @@ function enableFile(id, data, type, headerLineRegex, options) {
   return fileInfo
 }
 
-function _enableFile(id, data, type, options) {
-  const filePath = getFilePath(id, type, options)
+function _enableFile(info, data, type, options) {
+  const filePath = getFilePath(info, type, options)
   if (!util.existsSync(filePath)) {
-    const disabledPath = getDisabledFilePath(id, type, options)
+    const disabledPath = getDisabledFilePath(info, type, options)
     if (util.existsSync(disabledPath)) {
       return renameFile(disabledPath, filePath, options)
     } else if (options[type].generate) {
@@ -54,9 +54,9 @@ function renderTemplate(data, type, options) {
   return Mustache.render(options[type].template, view)
 }
 
-function disableFile(id, type, options) {
-  const filePath = getFilePath(id, type, options)
-  const disabledPath = getDisabledFilePath(id, type, options)
+function disableFile(info, type, options) {
+  const filePath = getFilePath(info, type, options)
+  const disabledPath = getDisabledFilePath(info, type, options)
   if (util.existsSync(filePath)) {
     fs.renameSync(filePath, disabledPath)
   }
@@ -72,12 +72,13 @@ function getTemplate(type, options) {
   }
 }
 
-function getFilePath(id, type, options) {
-  return path.join(options[type].path, `${id}${options.fileType || '.js'}`)
+function getFilePath(info, type, options) {
+  const typeOptions = options[type]
+  return path.join(typeOptions.path, typeOptions.group ? info.pkg : '/', `${info.id}${options.fileType || '.js'}`)
 }
 
-function getDisabledFilePath(id, type, options) {
-  return path.join(options[type].path, `${options.unusedFilePrefix}${id}${options.fileType || '.js'}`)
+function getDisabledFilePath(info, type, options) {
+  return path.join(options[type].path, `${options.unusedFilePrefix}${info.id}${options.fileType || '.js'}`)
 }
 
 function fileInfo(filePath, gen, old, options) {
@@ -90,10 +91,11 @@ function fileInfo(filePath, gen, old, options) {
 }
 
 function disableOldOperationFiles(operations, type, options) {
-  if (!options[type].generate || options[type].create) return []
+  const typeOptions = options[type] 
+  if (!typeOptions.generate || typeOptions.create || typeOptions.group) return []
 
   const fileType = options.fileType || '.js'
-  const filenames = fs.readdirSync(options[type].path)
+  const filenames = fs.readdirSync(typeOptions.path)
   const unknown = filenames.filter(name =>
       name.endsWith(fileType) &&
       !name.startsWith(options.unusedFilePrefix) &&
@@ -101,8 +103,8 @@ function disableOldOperationFiles(operations, type, options) {
 
   return unknown.map(name => {
     name = path.basename(name, fileType)
-    const filePath = getFilePath(name, type, options)
-    const disabledPath = getDisabledFilePath(name, type, options)
+    const filePath = getFilePath({ id: name }, type, options)
+    const disabledPath = getDisabledFilePath({ id: name }, type, options)
     fs.renameSync(filePath, disabledPath)
     return fileInfo(disabledPath, false, true, options)
   })

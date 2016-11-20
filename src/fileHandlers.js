@@ -8,11 +8,11 @@ exports.disableOldHandlers = disableOldHandlers
 exports.getTemplateView = getTemplateView
 
 function enableHandler(operation, options) {
-  return fileUtil.enableFile(operation.id, operation, 'handlers', /^\/?\*/, options)
+  return fileUtil.enableFile(operation, operation, 'handlers', /^\/?\*/, options)
 }
 
 function disableHandler(operation, options) {
-  return fileUtil.disableFile(operation.id, 'handlers', options)
+  return fileUtil.disableFile(operation, 'handlers', options)
 }
 
 function disableOldHandlers(operations, options) {

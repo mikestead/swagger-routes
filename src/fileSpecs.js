@@ -8,11 +8,11 @@ exports.disableOldSpecs = disableOldSpecs
 exports.getTemplateView = getTemplateView
 
 function enableSpec(operation, options) {
-  return fileUtil.enableFile(operation.id, operation, 'specs', /^#/, options)
+  return fileUtil.enableFile(operation, operation, 'specs', /^#/, options)
 }
 
 function disableSpec(operation, options) {
-  return fileUtil.disableFile(operation.id, 'specs', options)
+  return fileUtil.disableFile(operation, 'specs', options)
 }
 
 function disableOldSpecs(operations, options) {
