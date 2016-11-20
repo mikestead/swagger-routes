@@ -120,11 +120,11 @@ The default template is defined [here](https://github.com/mikestead/swagger-rout
 {
     ...
     handlers: {
-    	path: './src/handlers',
-    	template: './template/handler.mustache', // can also be set with a loaded template
-    	getTemplateView: operation => operation, // define the object to be rendered by your template
-    	create: operation => (req, res) => {}, // see Handler Factory section for details
-    	generate: true, // hander file generation on by default
+        path: './src/handlers',
+        template: './template/handler.mustache', // can also be set with a loaded template
+        getTemplateView: operation => operation, // define the object to be rendered by your template
+        create: operation => (req, res) => {}, // see Handler Factory section for details
+        generate: true, // hander file generation on by default
         group: false // when true each handler file will be placed under a directory named after its primary tag
     }
 }
