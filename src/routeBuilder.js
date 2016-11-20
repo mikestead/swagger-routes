@@ -52,12 +52,21 @@ function getMiddleware(customMiddleware, operation, authorizers) {
   const preValidation = customMiddleware.filter(m => !m.validated).map(getAction).filter(util.isFunc)
   const postValidation = customMiddleware.filter(m => !!m.validated).map(getAction).filter(util.isFunc)
 
+  middleware.push(augmentRequest(operation))
+  
   if (authCheck) middleware.push(authCheck)
   if (preValidation.length) middleware.push.apply(middleware, preValidation)
   if (validationCheck) middleware.push(validationCheck)
   if (postValidation.length) middleware.push.apply(middleware, postValidation)
 
   return middleware
+}
+
+function augmentRequest(operation) {
+  return function augmentReq(req, res, next) {
+    req.operation = operation
+    return next()
+  }
 }
 
 /*
