@@ -41,7 +41,7 @@ describe('index', () => {
 
           verifyAppStackSize(app, 2)
 
-          verifyRoute(app, '/pets', [ 'validator', 'handler' ])
+          verifyRoute(app, '/pets', [ 'augmentReq', 'validator', 'handler' ])
           verifyRoute(app, options.docsPath, [ 'handler' ])
         })
 
@@ -66,7 +66,7 @@ describe('index', () => {
           }
 
           addHandlers(app, options2)
-          verifyRoute(app, '/pets', [ 'middleware', 'validator', 'handler' ])
+          verifyRoute(app, '/pets', [ 'augmentReq', 'middleware', 'validator', 'handler' ])
         })
 
         it('should support post validation middleware', () => {
@@ -79,7 +79,7 @@ describe('index', () => {
           }
 
           addHandlers(app, options2)
-          verifyRoute(app, '/pets', [ 'validator', 'middleware', 'handler' ])
+          verifyRoute(app, '/pets', [ 'augmentReq', 'validator', 'middleware', 'handler' ])
         })
 
         it('should support handler multi-middleware', () => {
@@ -95,7 +95,7 @@ describe('index', () => {
           }
 
           addHandlers(app, options2)
-          verifyRoute(app, '/pets', [ 'middleware1', 'middleware2', 'validator', 'handler' ])
+          verifyRoute(app, '/pets', [ 'augmentReq', 'middleware1', 'middleware2', 'validator', 'handler' ])
         })
 
         it('should support pre and post validation middleware', () => {
@@ -111,14 +111,14 @@ describe('index', () => {
           }
 
           addHandlers(app, options2)
-          verifyRoute(app, '/pets', [ 'middlewarePre', 'validator', 'middlewarePost', 'handler' ])
+          verifyRoute(app, '/pets', [ 'augmentReq', 'middlewarePre', 'validator', 'middlewarePost', 'handler' ])
         })
 
         it('should add auth middleware to secure routes', () => {
           const options2 = Object.assign({}, options, { api: secureApi })
 
           addHandlers(app, options2)
-          verifyRoute(app, '/pets', [ 'authorize', 'validator', 'handler' ])
+          verifyRoute(app, '/pets', [ 'augmentReq', 'authorize', 'validator', 'handler' ])
         })
 
         it('should add auth middleware before other route middleware', () => {
@@ -131,7 +131,7 @@ describe('index', () => {
           }
 
           addHandlers(app, options2)
-          verifyRoute(app, '/pets', [ 'authorize', 'middleware', 'validator', 'handler' ])
+          verifyRoute(app, '/pets', [ 'augmentReq', 'authorize', 'middleware', 'validator', 'handler' ])
         })
 
         it('should support registering multiple Swagger api specs', () => {
@@ -143,10 +143,10 @@ describe('index', () => {
 
           verifyAppStackSize(app, 4)
 
-          verifyRoute(app, '/pets', [ 'validator', 'handler' ], api.basePath)
+          verifyRoute(app, '/pets', [ 'augmentReq', 'validator', 'handler' ], api.basePath)
           verifyRoute(app, options.docsPath, [ 'handler' ], api.basePath)
 
-          verifyRoute(app, '/pets', [ 'validator', 'handler' ], api2.basePath)
+          verifyRoute(app, '/pets', [ 'augmentReq', 'validator', 'handler' ], api2.basePath)
           verifyRoute(app, options.docsPath, [ 'handler' ], api2.basePath)
         })
 

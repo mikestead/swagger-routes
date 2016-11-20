@@ -18,7 +18,7 @@ function registerOperationRoutes(app, operations, options) {
   operations.forEach(operation => {
     const opPath = operation.fullPath.replace(/{([^}]+)}/g, ':$1')
     const stack = routeBuilder.buildHandlerStack(operation, authorizers, options)
-    assert.ok(stack.length > 0, `Missing operation handler for '${operation.id}'`)
+    assert.ok(stack.length > 1, `Missing operation handler for '${operation.id}'`)
     getHttpMethod(app, operation).apply(app, [ opPath ].concat(stack))
   })
 }
