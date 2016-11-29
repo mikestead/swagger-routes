@@ -100,7 +100,7 @@ function createPathOperation(method, pathInfo, pathsXProps, spec) {
     id: operationInfo.operationId,
     pkg: getPackageName(operationInfo),
     path: pathInfo.path,
-    fullPath: path.normalize(`/${spec.basePath}/${pathInfo.path}`),
+    fullPath: `/${spec.basePath}/${pathInfo.path}`.replace(/\/\//g,'/').replace(/\/\//g,'/'),
     consumes: getOperationProperty('consumes', operationInfo, spec),
     produces: getOperationProperty('produces', operationInfo, spec),
     paramGroupSchemas: createParamGroupSchemas(operationInfo.parameters, spec),
