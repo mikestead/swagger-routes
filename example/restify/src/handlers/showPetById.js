@@ -11,7 +11,6 @@
  *   
  */
 exports.handler = function showPetById(req, res, next) {
-  console.log(req.params.petId[0], req.params.petId)
   res.send('showPetById')
   next()
 }
