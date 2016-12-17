@@ -1,7 +1,6 @@
 'use strict'
 
 const fs = require('fs')
-const path = require('path')
 const util = require('./util')
 
 const HTTP_METHODS = [
@@ -100,7 +99,7 @@ function createPathOperation(method, pathInfo, pathsXProps, spec) {
     id: operationInfo.operationId,
     pkg: getPackageName(operationInfo),
     path: pathInfo.path,
-    fullPath: path.normalize(`/${spec.basePath}/${pathInfo.path}`),
+    fullPath: `/${spec.basePath}/${pathInfo.path}`.replace(/\/{2,}/g,'/'),
     consumes: getOperationProperty('consumes', operationInfo, spec),
     produces: getOperationProperty('produces', operationInfo, spec),
     paramGroupSchemas: createParamGroupSchemas(operationInfo.parameters, spec),
