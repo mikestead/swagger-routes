@@ -17,6 +17,7 @@ function formatGroupData(groupSchema, groupData, groupId, req) {
   const paramNames = Object.keys(groupSchema.properties)
   if (!groupData) groupData = {}
   const origGroupData = getOriginalGroup(req, groupId)
+  const reqParams = getReqParams(req, groupId)
   paramNames.forEach(name => {
     const paramSchema = groupSchema.properties[name]
     let val = groupData[name]
@@ -25,6 +26,9 @@ function formatGroupData(groupSchema, groupData, groupId, req) {
     val = parseNumber(paramSchema, val)
     val = applyDefaultValue(paramSchema, val)
     origGroupData[name] = groupData[name] = val
+    if (reqParams && reqParams[name] !== undefined) {
+      reqParams[name] = val
+    }
   })
   return groupData
 }
@@ -80,7 +84,7 @@ function getPathParams(req, operation) {
   // Note that this means we can't later determine if the client has sent
   // extra path parameters so validation around this is not possible.
 
-  return req.params = operation.parameters
+  return operation.parameters
     .filter(op => op.in === 'path')
     .reduce((pathParams, op) => {
       if (params[op.name] !== undefined) {
@@ -119,11 +123,13 @@ function getOriginalGroup(req, groupId) {
   }
 }
 
-
-/*
-    header: req.headers ? req.headers : req.headers = {},
-    path: parameters.getPathParams(req, operation),
-    query: parameters.castQueryParams(req, groupSchemas),
-    body: req.body ? req.body : req.body = {},
-    formData: parameters.getFormData(req)
-    */
+/**
+ * If using Restify, grab the common params object.
+ * We'll merge back formatted query and path params
+ * if they existed unformatted in there previously.
+ */
+function getReqParams(req, groupId) {
+  return (req && !req.app && (groupId === 'query' || groupId === 'path'))
+    ? req.params
+    : undefined;
+}
