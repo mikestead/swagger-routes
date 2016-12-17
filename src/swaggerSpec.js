@@ -173,7 +173,7 @@ function createResponseHeadersSchema(headers) {
 }
 
 function getPackageName(op) {
-  if (!op.tags || !op.tags[0]) return undefined
+  if (!op.tags || !op.tags[0]) return 'default'
   
   let pkg = op.tags[0].replace(/[^\w$]/g, '')
   if (/^[^a-zA-Z_$]/.test(pkg)) {
