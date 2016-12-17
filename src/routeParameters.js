@@ -12,18 +12,19 @@ exports.COLLECTION_FORMAT = COLLECTION_FORMAT
 exports.formatGroupData = formatGroupData
 exports.getPathParams = getPathParams
 exports.getFormData = getFormData
-exports.castQueryParams = castQueryParams
 
-function formatGroupData(groupSchema, groupData) {
+function formatGroupData(groupSchema, groupData, groupId, req) {
   const paramNames = Object.keys(groupSchema.properties)
   if (!groupData) groupData = {}
+  const origGroupData = getOriginalGroup(req, groupId)
   paramNames.forEach(name => {
     const paramSchema = groupSchema.properties[name]
     let val = groupData[name]
     val = parseCollectionFormat(paramSchema, val)
     val = parseBoolean(paramSchema, val)
+    val = parseNumber(paramSchema, val)
     val = applyDefaultValue(paramSchema, val)
-    groupData[name] = val
+    origGroupData[name] = groupData[name] = val
   })
   return groupData
 }
@@ -51,6 +52,14 @@ function parseBoolean(paramSchema, value) {
   return value
 }
 
+function parseNumber(paramSchema, value) {
+  if ((paramSchema.type === 'integer' || paramSchema.type === 'number') && value !== '') {
+    const num = Number(value)
+    if (!isNaN(num)) return num
+  }
+  return value
+}
+
 function stringValueToArray(value, format) {
   const delimiter = COLLECTION_FORMAT[format.toUpperCase()] || COLLECTION_FORMAT.CSV
   return value.split(delimiter)
@@ -71,7 +80,7 @@ function getPathParams(req, operation) {
   // Note that this means we can't later determine if the client has sent
   // extra path parameters so validation around this is not possible.
 
-  return operation.parameters
+  return req.params = operation.parameters
     .filter(op => op.in === 'path')
     .reduce((pathParams, op) => {
       if (params[op.name] !== undefined) {
@@ -99,15 +108,22 @@ function getFormData(req) {
   return null
 }
 
-function castQueryParams(req, groupSchemas) {
-  const query = req.query ? req.query : req.query = {}
-  const querySchema = groupSchemas.query || { properties: {} }
-  Object.keys(query).forEach(key => {
-    const propSchema = querySchema.properties[key]
-    if (propSchema && (propSchema.type === 'integer' || propSchema.type === 'number')) {
-      const num = Number(query[key])
-      if (!isNaN(num)) query[key] = num
-    }
-  })
-  return query
+function getOriginalGroup(req, groupId) {
+  switch (groupId) {
+    case 'header': return req.headers || {}
+    case 'path': return req.params || {}
+    case 'query': return (typeof req.query === 'function') ? {} : req.query || {}
+    case 'body':
+    case 'formData': return req.body || {}
+    default: return {}
+  }
 }
+
+
+/*
+    header: req.headers ? req.headers : req.headers = {},
+    path: parameters.getPathParams(req, operation),
+    query: parameters.castQueryParams(req, groupSchemas),
+    body: req.body ? req.body : req.body = {},
+    formData: parameters.getFormData(req)
+    */

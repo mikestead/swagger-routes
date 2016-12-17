@@ -19,11 +19,15 @@ function validateRequest(req, operation) {
   const groupSchemas = operation.paramGroupSchemas
   const reqData = groupRequestData(req, operation, groupSchemas)
   return Object.keys(groupSchemas)
-    .map(groupId => validateParam(
-      groupId,
-      groupSchemas[groupId],
-      reqData[groupId]
-    ))
+    .map(groupId => {
+      const groupSchema = groupSchemas[groupId]
+      const groupData = parameters.formatGroupData(groupSchema, reqData[groupId], groupId, req)
+      return validateParam(
+        groupId,
+        groupSchema,
+        groupData
+      )
+    })
     .filter(result => !result.valid)
     .reduce(reduceFailures, undefined) // must pass init value or reducer doesn't run for single value
 }
@@ -32,14 +36,13 @@ function groupRequestData(req, operation, groupSchemas) {
   return {
     header: req.headers ? req.headers : req.headers = {},
     path: parameters.getPathParams(req, operation),
-    query: parameters.castQueryParams(req, groupSchemas),
+    query: req.query ? req.query : req.query = {},
     body: req.body ? req.body : req.body = {},
     formData: parameters.getFormData(req)
   }
 }
 
 function validateParam(groupId, groupSchema, groupData) {
-  groupData = parameters.formatGroupData(groupSchema, groupData)
   groupData = Object.assign({}, groupData)
   let result = jsonSchema.validate(groupData, groupSchema, { propertyName: groupId })
   result = checkForMissingPathParams(groupId, groupSchema, groupData, result)
@@ -54,7 +57,7 @@ function checkForMissingPathParams(groupId, schema, data, result) {
   Object.keys(schema.properties).forEach(prop => {
     // if the value exists but as an un-replaced Swagger
     // path token then assume the path param has not been provided
-    if (data[prop] && data[prop].match(new RegExp(`^{${prop}}$`))) {
+    if (data[prop] && data[prop] === `{${prop}}`) {
       const propPath = result.propertyPath
       result.propertyPath += `.${prop}`
       result.addError({ message: `is required`, name: prop })

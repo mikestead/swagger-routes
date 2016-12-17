@@ -2,6 +2,8 @@ const swaggerRoutes = require('../../src')
 const restify = require('restify')
 const server = restify.createServer()
 
+server.use(restify.queryParser())
+
 swaggerRoutes(server, {
 	api: '../api.yml',
 	handlers: './src/handlers',

@@ -86,6 +86,45 @@ describe('routeValidation', () => {
       expect(failure.errors[0].message).toBe('query.INT is not of a type(s) integer')
     })
 
+    it('should allow integer path param', () => {
+      const param = copy({ in: 'path' }, PARAM.INT)
+      const spec = newSpec(param)
+      const req = newReq({ params: { [param.name]: '2330' } })
+
+      const failure = validateRequest(req, spec)
+      expect(failure).toNotExist()
+    })
+
+    it('should allow integer query param', () => {
+      const spec = newSpec(PARAM.INT)
+      const req = newReq({ query: { [PARAM.INT.name]: '2330' } })
+
+      const failure = validateRequest(req, spec)
+      expect(failure).toNotExist()
+    })
+
+    it('should fail if integer path param is decimal', () => {
+      const param = copy({ in: 'path' }, PARAM.INT)
+      const spec = newSpec(param)
+      const req = newReq({ params: { [param.name]: '2330.33' } })
+
+      const failure = validateRequest(req, spec)
+      expect(failure).toExist()
+      expect(failure.errors.length).toBe(1)
+      expect(failure.errors[0].message).toBe('path.INT is not of a type(s) integer')
+    })
+
+    it('should fail if integer query param is decimal', () => {
+      const param = copy({ in: 'path' }, PARAM.INT)
+      const spec = newSpec(PARAM.INT)
+      const req = newReq({ query: { [PARAM.INT.name]: '2330.33' } })
+
+      const failure = validateRequest(req, spec)
+      expect(failure).toExist()
+      expect(failure.errors.length).toBe(1)
+      expect(failure.errors[0].message).toBe('query.INT is not of a type(s) integer')
+    })
+
     it('should enforce that path param is a valid path segment id under express', () => {
       const spec = newSpec(PARAM.STRING)
       const req = newReq({ params: { 'wrong': 'value' } })

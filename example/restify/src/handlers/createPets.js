@@ -5,6 +5,6 @@
  * 
  */
 exports.handler = function createPets(req, res, next) {
-	res.send('createPets')
-	next()
+  res.send('createPets')
+  next()
 }
