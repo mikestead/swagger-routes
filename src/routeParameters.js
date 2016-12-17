@@ -123,7 +123,7 @@ function getOriginalGroup(req, groupId) {
   }
 }
 
-/**
+/*
  * If using Restify, grab the common params object.
  * We'll merge back formatted query and path params
  * if they existed unformatted in there previously.
@@ -131,5 +131,5 @@ function getOriginalGroup(req, groupId) {
 function getReqParams(req, groupId) {
   return (req && !req.app && (groupId === 'query' || groupId === 'path'))
     ? req.params
-    : undefined;
+    : undefined
 }

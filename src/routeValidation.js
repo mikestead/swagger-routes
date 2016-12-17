@@ -17,7 +17,7 @@ function createValidationCheck(operation) {
 
 function validateRequest(req, operation) {
   const groupSchemas = operation.paramGroupSchemas
-  const reqData = groupRequestData(req, operation, groupSchemas)
+  const reqData = groupRequestData(req, operation)
   return Object.keys(groupSchemas)
     .map(groupId => {
       const groupSchema = groupSchemas[groupId]
@@ -32,7 +32,7 @@ function validateRequest(req, operation) {
     .reduce(reduceFailures, undefined) // must pass init value or reducer doesn't run for single value
 }
 
-function groupRequestData(req, operation, groupSchemas) {
+function groupRequestData(req, operation) {
   return {
     header: req.headers ? req.headers : req.headers = {},
     path: parameters.getPathParams(req, operation),

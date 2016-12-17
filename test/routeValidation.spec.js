@@ -115,7 +115,6 @@ describe('routeValidation', () => {
     })
 
     it('should fail if integer query param is decimal', () => {
-      const param = copy({ in: 'path' }, PARAM.INT)
       const spec = newSpec(PARAM.INT)
       const req = newReq({ query: { [PARAM.INT.name]: '2330.33' } })
 
