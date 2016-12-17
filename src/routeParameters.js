@@ -12,18 +12,23 @@ exports.COLLECTION_FORMAT = COLLECTION_FORMAT
 exports.formatGroupData = formatGroupData
 exports.getPathParams = getPathParams
 exports.getFormData = getFormData
-exports.castQueryParams = castQueryParams
 
-function formatGroupData(groupSchema, groupData) {
+function formatGroupData(groupSchema, groupData, groupId, req) {
   const paramNames = Object.keys(groupSchema.properties)
   if (!groupData) groupData = {}
+  const origGroupData = getOriginalGroup(req, groupId)
+  const reqParams = getReqParams(req, groupId)
   paramNames.forEach(name => {
     const paramSchema = groupSchema.properties[name]
     let val = groupData[name]
     val = parseCollectionFormat(paramSchema, val)
     val = parseBoolean(paramSchema, val)
+    val = parseNumber(paramSchema, val)
     val = applyDefaultValue(paramSchema, val)
-    groupData[name] = val
+    origGroupData[name] = groupData[name] = val
+    if (reqParams && reqParams[name] !== undefined) {
+      reqParams[name] = val
+    }
   })
   return groupData
 }
@@ -47,6 +52,14 @@ function parseBoolean(paramSchema, value) {
       default:
         return false
     }
+  }
+  return value
+}
+
+function parseNumber(paramSchema, value) {
+  if ((paramSchema.type === 'integer' || paramSchema.type === 'number') && value !== '') {
+    const num = Number(value)
+    if (!isNaN(num)) return num
   }
   return value
 }
@@ -99,15 +112,24 @@ function getFormData(req) {
   return null
 }
 
-function castQueryParams(req, groupSchemas) {
-  const query = req.query ? req.query : req.query = {}
-  const querySchema = groupSchemas.query || { properties: {} }
-  Object.keys(query).forEach(key => {
-    const propSchema = querySchema.properties[key]
-    if (propSchema && (propSchema.type === 'integer' || propSchema.type === 'number')) {
-      const num = Number(query[key])
-      if (!isNaN(num)) query[key] = num
-    }
-  })
-  return query
+function getOriginalGroup(req, groupId) {
+  switch (groupId) {
+    case 'header': return req.headers || {}
+    case 'path': return req.params || {}
+    case 'query': return (typeof req.query === 'function') ? {} : req.query || {}
+    case 'body':
+    case 'formData': return req.body || {}
+    default: return {}
+  }
+}
+
+/*
+ * If using Restify, grab the common params object.
+ * We'll merge back formatted query and path params
+ * if they existed unformatted in there previously.
+ */
+function getReqParams(req, groupId) {
+  return (req && !req.app && (groupId === 'query' || groupId === 'path'))
+    ? req.params
+    : undefined
 }

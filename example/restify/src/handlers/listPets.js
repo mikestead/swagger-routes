@@ -8,6 +8,6 @@
  *   
  */
 exports.handler = function listPets(req, res, next) {
-	res.send('listPets')
-	next()
+  res.send('listPets')
+  next()
 }
