@@ -49,6 +49,8 @@ function parseBoolean(paramSchema, value) {
       case 'yes':
       case 'y':
         return true
+      case 'undefined':
+        return undefined
       default:
         return false
     }
