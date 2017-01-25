@@ -112,7 +112,7 @@ function resolveSchemaRefs(data, lookup) {
 function resolveSchemaRef(ref, lookup) {
   const parts = ref.split('/')
 
-  assert.ok(parts.shift() === '#', `Only support JSON Schema $refs in format '#/path/to/ref'`)
+  assert.ok(parts.shift() === '#', 'Only support JSON Schema $refs in format \'#/path/to/ref\'')
 
   let value = lookup
   while (parts.length) {
