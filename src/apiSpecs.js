@@ -154,11 +154,14 @@ function runStep(step, op, specInfo, options, acc) {
         console.log(msg)
       }
       return res
+    }, res => {
+      acc.push({ req, res })
+      return res
     })
     .then(
       res => validateResponse(req, res, step, op, options, acc),
       res => validateResponse(req, res, step, op, options, acc)
-  )
+    )
     .then(() => acc)
 }
 
