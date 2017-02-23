@@ -327,7 +327,13 @@ function validateResponse(req, res, spec, op, options, acc) {
 
 function getResponseSpec(spec, acc, options) {
   if (typeof spec.response === 'object') {
-    return populateProperties(spec.response, acc, options)
+    // Don't attempt to parse properties if we didn't get the expected
+    // response as things will tend to blow up
+    if (spec.response.status === (acc[acc.length - 1] || { res: {} }).res.status) {
+      return populateProperties(spec.response, acc, options)
+    } else {
+      return spec.response
+    }
   } else {
     return { status: spec.response }
   }
