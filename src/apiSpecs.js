@@ -365,6 +365,12 @@ function validateBody(res, bodySchema, responseSpec) {
     // Instead we capture all errors and then throw the first one found
     const result = jsonSchema.validate(res.data, bodySchema, { throwError: false })
     if (result && result.errors.length) {
+      const details = result.errors
+        .slice(1)
+        .map( e => `\n\t - ${e.property} - ${e.message}`)
+        .join('')
+
+      result.errors[0].message += details
       throw result.errors[0]
     }
   }
