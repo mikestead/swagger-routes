@@ -216,6 +216,23 @@ It takes an array of scopes you decode from the authenticated request and verifi
 required scope(s) defined be the scheme are present. If they're not a `403 Forbidden` 
 [error](https://en.wikipedia.org/wiki/HTTP_403#Difference_from_status_.22401_Unauthorized.22) is returned.
 
+When multiple scopes are defined for a security definition, Swagger expects all of them to be present
+for `verifyScopes` to succeed. As an extension, swagger-routes also supports the logical OR of token
+scopes, so if *any* exist then `verifyScopes` succeeds.
+
+This example will pass the auth check if either a `Catalog` OR `Playback` scope exist.
+
+```yaml
+  ...
+  security:
+    - accountAuth:
+      - Catalog
+      - Playback
+  x-security:
+    accountAuth:
+      OR_scopes: true
+```
+
 Remember if no credentials are supplied a `401 Unauthorized` should be returned.
 
 ##### Generating Authorizer Files

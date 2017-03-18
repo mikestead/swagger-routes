@@ -38,6 +38,8 @@ function createAuthCheck(operation, authorizers) {
   let security = operation.security || []
   if (security && !Array.isArray(security)) security = [ security ]
   if (!security.length) return null
+  
+  const securityExt = operation['x-security']
 
   return function authorize(req, res, next) {
     return Promise.all(security.map(scheme => {
@@ -46,10 +48,12 @@ function createAuthCheck(operation, authorizers) {
 
       return new Promise((resolve, reject) => {
         const authorizer = authorizers.get(id)
+        const ext = (securityExt && securityExt[id]) || {}
+        
         if (typeof authorizer === 'function') {
           const requiredScopes = scheme[id]
           req.verifyScopes = function verifyScopes(scopes) {
-            return verifyRequiredScopes(requiredScopes, scopes)
+            return verifyRequiredScopes(requiredScopes, scopes, ext)
           }
           try {
             const result = authorizer(req, res, err => err ? reject(err) : resolve())
@@ -72,11 +76,18 @@ function createAuthCheck(operation, authorizers) {
   }
 }
 
-function verifyRequiredScopes(requiredScopes, scopes) {
+function verifyRequiredScopes(requiredScopes, scopes, ext) {
   if (!requiredScopes || !requiredScopes.length) return undefined
   if (!scopes) scopes = []
 
-  const hasRequiredScopes = requiredScopes.every(scope => scopes.indexOf(scope) !== -1)
+  let hasRequiredScopes = false
+  if (ext && ext.OR_scopes) {
+    // This extension allows for the logical OR of token scopes, so if one
+    // or more scopes exist, access is permitted.
+    hasRequiredScopes = requiredScopes.some(scope => scopes.indexOf(scope) !== -1)
+  } else {
+    hasRequiredScopes = requiredScopes.every(scope => scopes.indexOf(scope) !== -1)
+  }
   if (!hasRequiredScopes) {
     const e = new Error('Forbidden')
     e.statusCode = e.status = 403
