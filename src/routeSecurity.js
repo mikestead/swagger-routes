@@ -48,7 +48,9 @@ function createAuthCheck(operation, authorizers) {
 
       return new Promise((resolve, reject) => {
         const authorizer = authorizers.get(id)
-        const ext = (securityExt && securityExt[id]) || {}
+        const ext = (securityExt && securityExt[id]) 
+          ? securityExt[id]
+          : {}
         
         if (typeof authorizer === 'function') {
           const requiredScopes = scheme[id]
