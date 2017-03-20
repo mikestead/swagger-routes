@@ -60,7 +60,7 @@ function checkForMissingPathParams(groupId, schema, data, result) {
     if (data[prop] && data[prop] === `{${prop}}`) {
       const propPath = result.propertyPath
       result.propertyPath += `.${prop}`
-      result.addError({ message: `is required`, name: prop })
+      result.addError({ message: 'is required', name: prop })
       result.propertyPath = propPath
     }
   })
