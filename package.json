@@ -1,6 +1,6 @@
 {
   "name": "swagger-routes",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Generate Express or Restify route handlers from a Swagger specification",
   "main": "src/index",
   "keywords": [
@@ -44,9 +44,9 @@
     "mustache": "^2.2.1"
   },
   "devDependencies": {
-    "del": "^2.2.0",
     "babel-eslint": "^4.1.6",
     "concat-stream": "^1.5.1",
+    "del": "^2.2.0",
     "eslint": "^1.10.3",
     "eslint-config-rackt": "^1.1.1",
     "express": "^4.13.4",
