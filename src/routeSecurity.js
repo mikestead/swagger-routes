@@ -54,6 +54,7 @@ function createAuthCheck(operation, authorizers) {
         
         if (typeof authorizer === 'function') {
           const requiredScopes = scheme[id]
+          req.requiredScopes = requiredScopes
           req.verifyScopes = function verifyScopes(scopes) {
             return verifyRequiredScopes(requiredScopes, scopes, ext)
           }
