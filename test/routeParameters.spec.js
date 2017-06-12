@@ -38,6 +38,7 @@ describe('routeParameters', () => {
     })
 
     it('should apply default value to undefined parameter', () => {
+      const req = {}
       const groupData = routeParameters.formatGroupData({
         properties: {
           STRING: {
@@ -45,10 +46,12 @@ describe('routeParameters', () => {
             default: 'foo'
           }
         }
-      },{})
+      },{}, '', req)
 
       expect(groupData).toExist()
       expect(groupData.STRING).toBe('foo')
+      expect(req.appliedDefaults).toExist()
+      expect(req.appliedDefaults['STRING']).toBeTruthy()
     })
 
     it('should ignore default value on required parameter', () => {
