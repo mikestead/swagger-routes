@@ -17,6 +17,7 @@ const DEFAULT_EXPRESS_OPTIONS = {
 
 const DEFAULT_OPTIONS = {
   docsPath: '/api-docs',
+  docsMiddleware: function docsMiddleware(req, res, next) { next() },
   handlers: {
     path: './handlers',
     template: path.join(__dirname, '..', 'template', 'handler.mustache'),
