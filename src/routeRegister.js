@@ -33,5 +33,5 @@ function getHttpMethod(app, operation) {
 
 function registerDocsRoute(app, options) {
   const docsPath = path.normalize(`/${options.api.basePath}/${options.docsPath}`)
-  app.get(docsPath, function handler(req, res) { res.json(options.api) })
+  app.get(docsPath, options.docsMiddleware, function handler(req, res) { res.json(options.api) })
 }

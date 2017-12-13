@@ -42,7 +42,7 @@ describe('index', () => {
           verifyAppStackSize(app, 2)
 
           verifyRoute(app, '/pets', [ 'augmentReq', 'validator', 'handler' ])
-          verifyRoute(app, options.docsPath, [ 'handler' ])
+          verifyRoute(app, options.docsPath, [ 'docsMiddleware', 'handler' ])
         })
 
         it('should always register doc route', () => {
@@ -53,7 +53,7 @@ describe('index', () => {
 
           verifyAppStackSize(app, 1)
 
-          verifyRoute(app, options.docsPath, [ 'handler' ])
+          verifyRoute(app, options.docsPath, [ 'docsMiddleware', 'handler' ])
         })
 
         it('should support handler middleware', () => {
@@ -144,10 +144,10 @@ describe('index', () => {
           verifyAppStackSize(app, 4)
 
           verifyRoute(app, '/pets', [ 'augmentReq', 'validator', 'handler' ], api.basePath)
-          verifyRoute(app, options.docsPath, [ 'handler' ], api.basePath)
+          verifyRoute(app, options.docsPath, [ 'docsMiddleware', 'handler' ], api.basePath)
 
           verifyRoute(app, '/pets', [ 'augmentReq', 'validator', 'handler' ], api2.basePath)
-          verifyRoute(app, options.docsPath, [ 'handler' ], api2.basePath)
+          verifyRoute(app, options.docsPath, [ 'docsMiddleware', 'handler' ], api2.basePath)
         })
 
         it('should expose swagger apis via app/server property', () => {
