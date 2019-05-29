@@ -151,12 +151,12 @@ describe('routeValidation', () => {
     })
 
     it('should ignore allowEmptyValue in parameters outside of formData or query', () => {
-      const spec = newSpec(PARAM.INT, { allowEmptyValue: true, 'in': 'path' })
+      const spec = newSpec(PARAM.INT, { allowEmptyValue: true, required: true, 'in': 'path' })
       const req = newReq({ params: { 'INT': '' } })
       const failure = validateRequest(req, spec)
 
       expect(failure).toExist()
-      expect(failure.errors[0].message).toBe('path.INT is not of a type(s) integer')
+      expect(failure.errors[0].message).toBe('path requires property "INT"')
     })
 
     it('should restrict values to enum set', () => {
@@ -229,6 +229,16 @@ describe('routeValidation', () => {
 
       expect(failure).toExist()
       expect(failure.errors[0].message).toBe('path.STRING does not match pattern "^s"')
+    })
+
+    it('should fail if string path param is empty', () => {
+      const param = copy({ in: 'path', required: true }, PARAM.STRING)
+      const spec = newSpec(param)
+      const req = newReq({ params: { [param.name]: '' } })
+
+      const failure = validateRequest(req, spec)
+      expect(failure).toExist()
+      expect(failure.errors[0].message).toBe('path requires property "STRING"')
     })
 
     it('should restrict an array length to a defined maximum', () => {

@@ -94,8 +94,9 @@ function getPathParams(req, operation) {
   return operation.parameters
     .filter(op => op.in === 'path')
     .reduce((pathParams, op) => {
-      if (params[op.name] !== undefined) {
-        pathParams[op.name] = params[op.name]
+      const v = params[op.name]
+      if (v !== undefined && v !== '') {
+        pathParams[op.name] = v
       }
       return pathParams
     }, {})
