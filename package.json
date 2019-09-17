@@ -1,6 +1,6 @@
 {
   "name": "swagger-routes",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "Generate Express or Restify route handlers from a Swagger specification",
   "main": "src/index",
   "keywords": [
