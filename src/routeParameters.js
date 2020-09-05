@@ -35,33 +35,58 @@ function formatGroupData(groupSchema, groupData, groupId, req) {
 
 function parseCollectionFormat(paramSchema, value) {
   if (paramSchema.type === 'array' && typeof value === 'string') {
-    return stringValueToArray(value, paramSchema.collectionFormat || 'csv')
+    // convert the collection string into an array of items
+    let values = stringValueToArray(value, paramSchema.collectionFormat || 'csv')
+
+    // may need to convert it based on the schema to something
+    // else so that jsonschema will validate it correctly
+
+    // create a do-nothing converter
+    let converter = (v) => { return v }
+
+    if ([ 'integer', 'long', 'number' ].includes(paramSchema.items.type)) {
+      converter = toNumber
+    } else if (paramSchema.items.type === 'boolean') {
+      converter = toBoolean
+    }
+    return values.map((v) => converter(v))
+  }
+  return value
+}
+
+function toBoolean(value) {
+  switch(`${value}`.toLowerCase().trim()) {
+    case 'true':
+    case '1':
+    case 'on':
+    case 'yes':
+    case 'y':
+      return true
+    case 'undefined':
+      return undefined
+    default:
+      return false
+  }
+}
+
+function toNumber(value) {
+  const num = Number(value)
+  if (!isNaN(num)) {
+    return num
   }
   return value
 }
 
 function parseBoolean(paramSchema, value) {
   if (paramSchema.type === 'boolean') {
-    switch(`${value}`.toLowerCase().trim()) {
-      case 'true':
-      case '1':
-      case 'on':
-      case 'yes':
-      case 'y':
-        return true
-      case 'undefined':
-        return undefined
-      default:
-        return false
-    }
+    return toBoolean(value)
   }
   return value
 }
 
 function parseNumber(paramSchema, value) {
   if ((paramSchema.type === 'integer' || paramSchema.type === 'number') && value !== '') {
-    const num = Number(value)
-    if (!isNaN(num)) return num
+    return toNumber(value)
   }
   return value
 }
