@@ -44,7 +44,7 @@ function parseCollectionFormat(paramSchema, value) {
     // create a do-nothing converter
     let converter = (v) => { return v }
 
-    if (['integer', 'long', 'number'].includes(paramSchema.items.type)) {
+    if ([ 'integer', 'long', 'number' ].includes(paramSchema.items.type)) {
       converter = toNumber
     } else if (paramSchema.items.type === 'boolean') {
       converter = toBoolean
@@ -56,16 +56,16 @@ function parseCollectionFormat(paramSchema, value) {
 
 function toBoolean(value) {
   switch(`${value}`.toLowerCase().trim()) {
-  case 'true':
-  case '1':
-  case 'on':
-  case 'yes':
-  case 'y':
-    return true
-  case 'undefined':
-    return undefined
-  default:
-    return false
+    case 'true':
+    case '1':
+    case 'on':
+    case 'yes':
+    case 'y':
+      return true
+    case 'undefined':
+      return undefined
+    default:
+      return false
   }
 }
 
