@@ -48,6 +48,29 @@ describe('swaggerSpec', () => {
       expect(bodySchema).toEqual(spec.definitions.Pet)
     })
 
+    it('should resolve parameter body schemas reference', () => {
+      spec.paths['/feeds/{feedId}'].put = {
+        operationId: 'updateFeed',
+        parameters: [ {
+          in: 'body',
+          schema: {
+            $ref: '#/definitions/Feed'
+          }
+        } ]
+      }
+      const operations = swaggerSpec.getAllOperations(spec)
+      const opt = operations.find(opt => opt.id === 'updateFeed')
+      const bodySchema = opt.paramGroupSchemas.body
+
+      expect(bodySchema).toEqual({
+        required: spec.definitions.Feed.allOf[0].required,
+        properties: Object.assign(
+          spec.definitions.Feed.allOf[0].properties,
+          spec.definitions.Feed.allOf[1].properties
+        )
+      })
+    })
+
     it('should resolve parameter array items reference', () => {
       spec.paths['/pets/{petId}'].get = {
         operationId: 'updatePet',

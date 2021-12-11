@@ -120,11 +120,8 @@ function createParamGroupSchemas(parameters) {
       const params = parameters.filter(param => param.in === loc)
       return { 'in': loc, schema: createParamsSchema(params, loc) }
     })
-    .filter(param => Object.keys(param.schema.properties || {}).length)
-    .reduce((map, param) => {
-      map[param.in] = param.schema
-      return map
-    }, {})
+    .filter(filterNonEmptySchemas)
+    .reduce(mapSchemaObjects, {})
 }
 
 function createParamsSchema(params, loc) {
@@ -147,6 +144,40 @@ function createParamsSchema(params, loc) {
       .filter(param => param.required)
       .map(param => param.name)
   }
+}
+
+function filterNonEmptySchemas(param) {
+  let schemaProperties = {}
+
+  if (param.schema.properties) {
+    schemaProperties = param.schema.properties
+  } else if (param.schema.allOf) {
+    schemaProperties = param.schema.allOf.reduce((schemaProperties, currentAllOfSchema) => {
+      return Object.assign(schemaProperties, currentAllOfSchema.properties)
+    }, {})
+  }
+
+  return Object.keys(schemaProperties).length
+}
+
+function mapSchemaObjects(map, param) {
+  if (param.schema.allOf) {
+    map[param.in] = param.schema.allOf.reduce((aggregatedSchema, currentAllOfSchema) => {
+      if (currentAllOfSchema.required) {
+        aggregatedSchema['required'] = (aggregatedSchema['required'] || []).concat(currentAllOfSchema.required)
+      }
+
+      if (currentAllOfSchema.properties) {
+        aggregatedSchema['properties'] = Object.assign(aggregatedSchema['properties'] || {}, currentAllOfSchema.properties)
+      }
+
+      return aggregatedSchema
+    }, {})
+  } else {
+    map[param.in] = param.schema
+  }
+
+  return map
 }
 
 function createResponseSchemas(responses, spec) {
