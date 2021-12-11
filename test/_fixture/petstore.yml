@@ -72,6 +72,27 @@ paths:
           description: unexpected error
           schema:
             $ref: '#/definitions/Error'
+  /feeds/{feedId}:
+    get:
+      summary: Info for a specific feed
+      operationId: showFeedById
+      tags:
+        - feeds
+      parameters:
+        - name: feedId
+          in: path
+          required: true
+          description: The id of the feed to retrieve
+          type: string
+      responses:
+        200:
+          description: Expected response to a valid request
+          schema:
+            $ref: '#/definitions/Feed'
+          default:
+            description: unexpected error
+            schema:
+              $ref: '#/definitions/Error'
 definitions:
   Pet:
     required:
@@ -89,6 +110,21 @@ definitions:
     type: array
     items:
       $ref: '#/definitions/Pet'
+  Feed:
+    allOf:
+      - required:
+          - id
+          - brand
+        properties:
+          id:
+            type: integer
+            format: int64
+          brand:
+            type: string
+      - properties:
+          amount:
+            type: integer
+            format: int64
   Error:
     required:
       - code
