@@ -8,9 +8,12 @@ const path = require('path')
 const assert = require('assert')
 const jsonSchema = require('jsonschema')
 const url = require('url')
-const request = require('axios')
+const axios = require('axios')
 const swaggerSpec = require('./swaggerSpec')
 const expect = require('expect')
+
+/** @type AxiosInstance */
+const request = axios.create()
 
 const ONLY_SPEC_MARKER = '+'
 const ONLY_VERBOSE_SPEC_MARKER = 'v+'
@@ -138,6 +141,14 @@ function getStepOperation(step, operations, primaryOp) {
   return operations.find(opt => opt.id === step.request.operationId) || primaryOp
 }
 
+function logRequest(step, specInfo, req, res) {
+  if (specInfo.verbose) {
+    const msg = `[${step.index}]${specInfo.summary}\n` +
+      `${prettyJson('Request:', req)}\n${prettyJson('Response:', res)}`
+    console.log(msg)
+  }
+}
+
 function runStep(step, op, specInfo, options, acc) {
   if (!acc) acc = []
   const req = createRequest(op, step.request, options, acc)
@@ -146,23 +157,17 @@ function runStep(step, op, specInfo, options, acc) {
     validateRequest(req, step, op)
   }
   return request(req)
+    .catch(error => {
+      // might be expected response
+      if (error.response) return error.response
+      throw error
+    })
     .then(res => {
       acc.push({ req, res })
-      if (specInfo.verbose) {
-        const msg = `[${step.index}]${specInfo.summary}\n` +
-          `${prettyJson('Request:', req)}\n${prettyJson('Response:', res)}`
-        console.log(msg)
-      }
-      return res
-    }, res => {
-      acc.push({ req, res })
-      return res
+      logRequest(step, specInfo, req, res)
+      validateResponse(req, res, step, op, options, acc)
+      return acc
     })
-    .then(
-      res => validateResponse(req, res, step, op, options, acc),
-      res => validateResponse(req, res, step, op, options, acc)
-    )
-    .then(() => acc)
 }
 
 function getSpecs(op, options) {
@@ -422,7 +427,13 @@ function getJsonFile(jsonPath) {
 }
 
 function prettyJson(title, obj) {
+  const cleanObj = Object.assign({}, obj, { request: null })
   const MAX_LINES = 400
-  const lines = JSON.stringify(obj, null, 2).split('\n').slice(0, MAX_LINES).join('\n')
-  return `${title}\n${lines}`
+  try {
+    const lines = JSON.stringify(cleanObj, null, 2).split('\n').slice(0, MAX_LINES).join('\n')
+    return `${title}\n${lines}`
+  } catch(e) {
+    console.log('Failed to JSON', obj)
+    return `${title}\n${obj}`
+  }
 }
